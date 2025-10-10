@@ -95,7 +95,7 @@ app.on('web-contents-created', (event, contents) => {
     
     // Allow navigation to our local HTML files
     if (parsedUrl.protocol === 'file:') {
-      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html'];
+      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html', 'pages/settings.html'];
       const filePath = parsedUrl.pathname;
       
       if (allowedFiles.some(file => filePath.endsWith(file))) {
@@ -196,9 +196,6 @@ ipcMain.handle('get-app-name', () => {
   return app.getName();
 });
 
-ipcMain.handle('get-default-start-date', () => {
-  return process.env.DEFAULT_START_DATE || '2024-12-15';
-});
 
 // Authentication IPC handlers
 ipcMain.handle('auth-login', async (event, credentials) => {
@@ -472,5 +469,140 @@ ipcMain.handle('navigate-to', (event, targetPath) => {
     const fullPath = path.join(__dirname, '..', targetPath);
     console.log('IPC: Full path:', fullPath);
     mainWindow.loadFile(fullPath);
+  }
+});
+
+// Customer Code Generation Handler
+ipcMain.handle('get-next-customer-code', async (event) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting next customer code');
+    const customers = await authService.db.getCustomers();
+    
+    // Extract numbers from existing customer codes
+    const existingNumbers = customers
+      .map(customer => customer.customer_code)
+      .filter(code => code && code.includes('GD7'))
+      .map(code => {
+        // Handle both 'GD7-1' and 'GD7- 1' formats
+        const number = code.replace(/GD7-?\s*/, '').trim();
+        return parseInt(number);
+      })
+      .filter(num => !isNaN(num))
+      .sort((a, b) => a - b);
+    
+    // Find next available number
+    let nextNumber = 1;
+    for (const num of existingNumbers) {
+      if (num === nextNumber) {
+        nextNumber++;
+      } else {
+        break;
+      }
+    }
+    
+    const nextCode = `GD7-${nextNumber}`;
+    console.log('IPC: Next customer code:', nextCode);
+    
+    return {
+      success: true,
+      nextCode: nextCode,
+      nextNumber: nextNumber
+    };
+  } catch (error) {
+    console.error('IPC: Get next customer code error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Customer Code Validation Handler
+ipcMain.handle('validate-customer-code', async (event, customerCode) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Validating customer code:', customerCode);
+    const customers = await authService.db.getCustomers();
+    
+    // Check if code already exists (normalize both codes for comparison)
+    const exists = customers.some(customer => {
+      if (!customer.customer_code) return false;
+      // Normalize both codes by removing spaces and converting to lowercase
+      const normalizedExisting = customer.customer_code.replace(/\s+/g, '').toLowerCase();
+      const normalizedNew = customerCode.replace(/\s+/g, '').toLowerCase();
+      return normalizedExisting === normalizedNew;
+    });
+    
+    console.log('IPC: Customer code exists:', exists);
+    
+    return {
+      success: true,
+      exists: exists,
+      valid: !exists
+    };
+  } catch (error) {
+    console.error('IPC: Validate customer code error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Get Default Start Date Handler
+ipcMain.handle('get-default-start-date', async (event) => {
+  try {
+    console.log('IPC: Getting default start date');
+    
+    // Read from environment or use default
+    const defaultStartDate = process.env.DEFAULT_START_DATE || '2024-12-15';
+    
+    console.log('IPC: Default start date:', defaultStartDate);
+    
+    return {
+      success: true,
+      startDate: defaultStartDate
+    };
+  } catch (error) {
+    console.error('IPC: Get default start date error:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      startDate: '2024-12-15' // fallback
+    };
+  }
+});
+
+// Clear Database Handler
+ipcMain.handle('clear-database', async (event) => {
+  try {
+    console.log('IPC: Clearing database');
+    
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    // Clear all data from database
+    await authService.db.clearAllData();
+    
+    console.log('IPC: Database cleared successfully');
+    
+    return {
+      success: true,
+      message: 'Database cleared successfully'
+    };
+  } catch (error) {
+    console.error('IPC: Clear database error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 });

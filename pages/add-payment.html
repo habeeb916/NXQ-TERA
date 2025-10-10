@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Payment - HSM-Tera Management System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../components/navbar.js"></script>
     <style>
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
@@ -26,8 +27,8 @@
         }
         .toast-progress-bar {
             animation: progress 3s linear;
-        }
-    </style>
+    } 
+  </style>
 </head>
 <body class="bg-gray-50">
     <!-- Navbar -->
@@ -37,45 +38,45 @@
         <div class="mb-8">
             <h2 class="text-3xl font-bold text-gray-800">Add Payment</h2>
             <p class="text-gray-600 mt-2">Record a new payment for the customer</p>
-        </div>
+    </div>
 
         <form id="addPaymentForm" class="bg-white rounded-lg shadow-md p-8 space-y-6">
             <!-- Customer Information -->
             <div class="border-b border-gray-200 pb-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Customer Information</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+          <div>
                         <label for="customer" class="block text-sm font-medium text-gray-700 mb-2">Customer</label>
                         <input type="text" id="customer" name="customer" readonly 
                                class="w-full px-4 py-3 bg-slate-50 text-slate-600 border border-gray-300 rounded-lg"
                                value="Loading...">
-                    </div>
-                    <div>
+          </div>
+          <div>
                         <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Monthly Amount</label>
                         <input type="text" id="amount" name="amount" readonly 
                                class="w-full px-4 py-3 bg-slate-50 text-slate-600 border border-gray-300 rounded-lg"
                                value="0">
                     </div>
                 </div>
-            </div>
+          </div>
 
             <!-- Payment Details -->
             <div class="border-b border-gray-200 pb-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Details</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+          <div>
                         <label for="month" class="block text-sm font-medium text-gray-700 mb-2">Payment Month *</label>
                         <select id="month" name="month" required 
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">Select Month</option>
                         </select>
-                    </div>
-                    <div>
+          </div>
+          <div>
                         <label for="paymentDate" class="block text-sm font-medium text-gray-700 mb-2">Payment Date *</label>
                         <input type="date" id="paymentDate" name="paymentDate" required 
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
-                </div>
+          </div>
             </div>
 
             <!-- Payment Method -->
@@ -98,16 +99,16 @@
                                    class="mr-2 text-blue-600 focus:ring-blue-500">
                             <span class="text-gray-700">Bank Transfer</span>
                         </label>
-                    </div>
+          </div>
                     
                     <div id="transactionIdField" class="hidden">
                         <label for="txnId" class="block text-sm font-medium text-gray-700 mb-2">Transaction ID</label>
                         <input type="text" id="txnId" name="txnId" 
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                placeholder="Enter transaction ID">
-                    </div>
-                </div>
-            </div>
+          </div>
+          </div>
+        </div>
 
             <!-- Notes -->
             <div class="border-b border-gray-200 pb-6">
@@ -117,8 +118,8 @@
                     <textarea id="notes" name="notes" rows="3"
                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="Add any additional notes about this payment"></textarea>
-                </div>
-            </div>
+        </div>
+      </div>
 
             <!-- Form Actions -->
             <div class="flex justify-end space-x-4">
@@ -131,14 +132,14 @@
                     Add Payment
                 </button>
             </div>
-        </form>
+    </form>
     </div>
 
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
 
     <script src="../components/navbar.js"></script>
-    <script>
+  <script>
         let customerData = null;
         let paymentsData = [];
 
@@ -185,7 +186,7 @@
                 if (result.success) {
                     customerData = result.customer;
                     updateCustomerInfo();
-                } else {
+        } else {
                     showToast('Failed to load customer data', 'error');
                 }
             } catch (error) {
@@ -278,12 +279,12 @@
         // Setup form handling
         function setupFormHandling() {
             document.getElementById('addPaymentForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
+      e.preventDefault();
+      
                 const formData = new FormData(e.target);
                 const customerId = getCustomerIdFromUrl();
                 
-                const paymentData = {
+      const paymentData = {
                     customer_id: parseInt(customerId),
                     amount: customerData.monthly_amount,
                     payment_date: formData.get('paymentDate'),
@@ -320,7 +321,7 @@
                     e.preventDefault();
                     document.body.style.opacity = '0.5';
                     document.body.style.transition = 'opacity 0.3s ease';
-                    setTimeout(() => {
+      setTimeout(() => {
                         window.location.href = e.target.href;
                     }, 300);
                 }
@@ -367,8 +368,8 @@
         function logout() {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
-            window.location.href = 'login.html';
-        }
+        window.location.href = 'login.html';
+      }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', async () => {
@@ -385,6 +386,6 @@
                 document.getElementById('paymentDate').value = today;
             }
         });
-    </script>
+  </script>
 </body>
 </html>

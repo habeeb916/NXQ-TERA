@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HSM-Tera | Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b'
+            },
+            success: '#10b981',
+            danger: '#dc2626',
+            warning: '#f59e0b'
+          },
+          boxShadow: {
+            card: '0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15)'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { 
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; 
+    }
+    
+    /* Toast notification styles */
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes progress {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+    .toast {
+      animation: slideInRight 0.3s ease-out;
+    }
+    .toast.hide {
+      animation: slideOutRight 0.3s ease-in;
+    }
+    .toast-progress-bar {
+      animation: progress 3s linear;
+    }
+  </style>
+  <meta name="description" content="HSM-Tera Management System - Login" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+</head>
+<body class="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white transition-opacity duration-300 opacity-0">
+  <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-300 via-brand-500 to-brand-300"></div>
+  <div class="flex min-h-screen items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-brand-100 text-brand-700 font-bold shadow-card">HSM</div>
+        <h1 class="mt-4 text-2xl font-semibold text-slate-800">HSM-Tera</h1>
+        <p class="text-slate-500">Sign in to manage customers and payments</p>
+      </div>
+
+      <div class="rounded-2xl p-[1px] bg-gradient-to-br from-brand-300/60 via-brand-100 to-transparent">
+        <div class="bg-white rounded-2xl p-6 shadow-card">
+          <form id="loginForm" class="space-y-5">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="username">Username</label>
+              <input id="username" name="username" type="text" required placeholder="Enter your username" 
+                     class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-brand-500 focus:ring-brand-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="password">Password</label>
+              <input id="password" name="password" type="password" required placeholder="••••••••" 
+                     class="w-full px-3 py-2.5 rounded-lg border border-slate-300 focus:border-brand-500 focus:ring-brand-500 focus:outline-none" />
+            </div>
+            <button type="submit" id="loginBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-brand-600 text-white px-4 py-2.5 hover:bg-brand-700 transition-colors duration-200 font-medium">
+              <span id="loginBtnText">Sign in</span>
+              <svg id="loginSpinner" class="hidden w-4 h-4 ml-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <p class="mt-6 text-center text-xs text-slate-500">HSM-Tera Management System</p>
+    </div>
+  </div>
+
+  <script>
+    // Fade in animation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeIn() {
+        if (prefersReduced) return document.body.classList.remove('opacity-0');
+        requestAnimationFrame(() => document.body.classList.remove('opacity-0'));
+      }
+      document.addEventListener('DOMContentLoaded', fadeIn);
+    })();
+
+    // Initialize login functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Login page: Initializing...');
+      
+      // Setup form handling
+      setupLoginForm();
+      
+      console.log('Login page: Initialization completed');
+    });
+
+    // Setup login form
+    function setupLoginForm() {
+      const form = document.getElementById('loginForm');
+      if (!form) return;
+      
+      form.addEventListener('submit', handleLogin);
+    }
+
+    // Handle login form submission
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const loginBtn = document.getElementById('loginBtn');
+      const loginBtnText = document.getElementById('loginBtnText');
+      const loginSpinner = document.getElementById('loginSpinner');
+      
+      try {
+        // Show loading state
+        loginBtn.disabled = true;
+        loginBtnText.textContent = 'Signing in...';
+        loginSpinner.classList.remove('hidden');
+        
+        // Get form data
+        const formData = new FormData(event.target);
+        const credentials = {
+          username: formData.get('username'),
+          password: formData.get('password')
+        };
+        
+        console.log('Login page: Attempting login for user:', credentials.username);
+        
+        // Validate credentials
+        if (!credentials.username || !credentials.password) {
+          throw new Error('Please enter both username and password');
+        }
+        
+        // Attempt login via Electron API
+        if (!window.electronAPI || !window.electronAPI.auth) {
+          throw new Error('Authentication service not available');
+        }
+        
+        const result = await window.electronAPI.auth.login(credentials);
+        console.log('Login page: Login result:', result);
+        
+        if (result.success) {
+          // Store authentication data
+          localStorage.setItem('authToken', result.token);
+          localStorage.setItem('user', JSON.stringify(result.user));
+          
+          console.log('Login page: Login successful, redirecting to dashboard...');
+          
+          // Show success message
+          showToast('Login successful! Redirecting...', 'success');
+          
+          // Redirect to dashboard after a short delay
+          setTimeout(() => {
+            console.log('Login page: Attempting navigation to dashboard...');
+            console.log('Login page: electronAPI available:', !!window.electronAPI);
+            console.log('Login page: navigation API available:', !!(window.electronAPI && window.electronAPI.navigation));
+            
+            // Try multiple navigation methods for better compatibility
+            if (window.electronAPI && window.electronAPI.navigation) {
+              console.log('Login page: Using Electron navigation API');
+              window.electronAPI.navigation.navigateTo('pages/dashboard.html')
+                .then(() => {
+                  console.log('Login page: Electron navigation successful');
+                })
+                .catch((error) => {
+                  console.error('Login page: Electron navigation failed:', error);
+                  console.log('Login page: Falling back to window.location');
+                  window.location.href = 'dashboard.html';
+                });
+            } else {
+              console.log('Login page: Using window.location fallback');
+              window.location.href = 'dashboard.html';
+            }
+          }, 1000);
+          
+        } else {
+          throw new Error(result.message || 'Login failed');
+        }
+        
+      } catch (error) {
+        console.error('Login page: Login error:', error);
+        showToast(error.message || 'Login failed. Please check your credentials.', 'error');
+      } finally {
+        // Reset button state
+        loginBtn.disabled = false;
+        loginBtnText.textContent = 'Sign in';
+        loginSpinner.classList.add('hidden');
+      }
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'info') {
+      // Remove existing toasts
+      const existingToasts = document.querySelectorAll('.toast');
+      existingToasts.forEach(toast => toast.remove());
+      
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-xl shadow-lg border border-slate-200 p-4`;
+      
+      // Set icon and colors based on type
+      let iconSvg = '';
+      let iconColor = '';
+      
+      switch (type) {
+        case 'success':
+          iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+          iconColor = 'text-green-500';
+          break;
+        case 'error':
+          iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+          iconColor = 'text-red-500';
+          break;
+        default:
+          iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+          iconColor = 'text-blue-500';
+      }
+      
+      toast.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="flex-shrink-0">
+            <svg class="w-5 h-5 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              ${iconSvg}
+            </svg>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-slate-800">${message}</p>
+          </div>
+          <button onclick="this.parentElement.parentElement.remove()" class="flex-shrink-0 text-slate-400 hover:text-slate-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-brand-500 to-brand-600 rounded-b-xl toast-progress-bar"></div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Auto remove toast after 4 seconds
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.classList.add('hide');
+          setTimeout(() => {
+            if (toast.parentElement) {
+              toast.remove();
+            }
+          }, 300);
+        }
+      }, 4000);
+    }
+
+    // Smooth navigation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeNavigate(event, href) {
+        if (prefersReduced) return;
+        event.preventDefault();
+        document.body.classList.add('opacity-0');
+        setTimeout(() => { window.location.href = href; }, 180);
+      }
+      document.addEventListener('click', function(e) {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const url = new URL(a.href, window.location.href);
+        const sameOrigin = url.origin === window.location.origin;
+        if (sameOrigin) fadeNavigate(e, a.href);
+      });
+    })();
+  </script>
+</body>
+</html>

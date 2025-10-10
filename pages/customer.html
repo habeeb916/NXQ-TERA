@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HSM-Tera | Customer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b'
+            },
+            success: '#10b981',
+            danger: '#dc2626',
+            warning: '#f59e0b'
+          },
+          boxShadow: {
+            card: '0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15)'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style> 
+    html, body { 
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; 
+    }
+
+    /* Shining badge animations */
+    @keyframes shine {
+      0% { transform: translateX(-100%) skewX(-15deg); }
+      100% { transform: translateX(200%) skewX(-15deg); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.2);
+        transform: scale(1);
+      }
+      50% { 
+        box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.3);
+        transform: scale(1.02);
+      }
+    }
+
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .shining-badge {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    .shining-badge::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      animation: shine 3s ease-in-out infinite;
+    }
+
+    .shining-badge .sparkle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: white;
+      border-radius: 50%;
+      animation: sparkle 1.5s ease-in-out infinite;
+    }
+
+    .shining-badge .sparkle:nth-child(1) {
+      top: 20%;
+      left: 20%;
+      animation-delay: 0s;
+    }
+
+    .shining-badge .sparkle:nth-child(2) {
+      top: 60%;
+      right: 20%;
+      animation-delay: 0.5s;
+    }
+
+    .shining-badge .sparkle:nth-child(3) {
+      bottom: 20%;
+      left: 50%;
+      animation-delay: 1s;
+    }
+
+    /* Amount card animations */
+    @keyframes countUp {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 1; }
+    }
+
+    .amount-counting {
+      animation: countUp 0.1s ease-in-out;
+    }
+
+    /* Tooltip styles */
+    .payment-tooltip {
+      position: relative;
+      cursor: help;
+    }
+
+    .payment-tooltip::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 1000;
+      max-width: 200px;
+      white-space: normal;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .payment-tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      border: 5px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .payment-tooltip:hover::before,
+    .payment-tooltip:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+  </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  <script src="../components/navbar.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white transition-opacity duration-300 opacity-0">
+  <!-- Navbar Container -->
+  <div id="navbar-container"></div>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex-1">
+        <div class="flex items-center gap-3">
+          <h1 id="customerName" class="text-xl font-semibold text-slate-800">Loading...</h1>
+          <div id="shiningBadge" class="hidden">
+            <div class="shining-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white text-sm font-medium">
+              <div class="sparkle"></div>
+              <div class="sparkle"></div>
+              <div class="sparkle"></div>
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span>Fully Paid</span>
+            </div>
+          </div>
+        </div>
+        <p id="customerAddress" class="text-slate-600 text-sm mt-1">Loading address...</p>
+        <p id="customerDetails" class="text-slate-500 text-sm mt-1">Loading customer details...</p>
+      </div>
+      
+      <!-- Amount Collected Card - Aligned with details -->
+      <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-4 py-3 shadow-lg">
+        <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+        <div class="relative flex items-center gap-3">
+          <div class="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full backdrop-blur-sm">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+          </div>
+          <div class="text-center">
+            <p class="text-brand-100 text-xs font-medium">Total Collected</p>
+            <p id="totalAmountCollected" class="text-lg font-bold text-white">₹ 0</p>
+            <p id="paymentCount" class="text-brand-200 text-xs">0 payments</p>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-white/30 via-white/20 to-transparent"></div>
+      </div>
+
+      <div class="text-right space-y-2">
+        <div class="text-sm text-slate-500">Monthly Amount</div>
+        <div id="monthlyAmount" class="text-2xl font-semibold">₹ 0</div>
+        <div id="programDetails" class="text-xs text-slate-500">Loading program details...</div>
+        <div>
+          <a id="addPaymentBtn" href="add-payment.html" class="inline-flex items-center rounded-lg bg-brand-600 text-white px-3 py-1.5 text-sm shadow-card hover:bg-brand-700">Add Payment</a>
+        </div>
+      </div>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="timelineTitle" class="font-medium text-slate-800">30-Month Payment Timeline</h2>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded-full bg-green-500 inline-block"></span> Paid</span>
+          <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded-full bg-red-500 inline-block"></span> Unpaid</span>
+        </div>
+      </div>
+      <div id="calendarGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="col-span-full text-center py-8 text-slate-500">Loading payment timeline...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Fade in animation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeIn() {
+        if (prefersReduced) return document.body.classList.remove('opacity-0');
+        requestAnimationFrame(() => document.body.classList.remove('opacity-0'));
+      }
+      document.addEventListener('DOMContentLoaded', fadeIn);
+    })();
+
+    // Animated counter
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function animateCount(el) {
+        const target = parseFloat(el.getAttribute('data-countup-value') || '0');
+        const prefix = el.getAttribute('data-countup-prefix') || '';
+        const duration = 900; // ms
+        const start = performance.now();
+        function step(now) {
+          const progress = Math.min(1, (now - start) / duration);
+          const ease = 1 - Math.pow(1 - progress, 3);
+          const value = Math.floor(target * ease);
+          el.textContent = `${prefix}${value.toLocaleString('en-IN')}`;
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+      function initCountups() {
+        if (prefersReduced) return;
+        document.querySelectorAll('[data-countup]').forEach(animateCount);
+      }
+      window.initCountups = initCountups; // Make it globally accessible
+      window.addEventListener('DOMContentLoaded', initCountups);
+    })();
+
+    // Global variables
+    let customerData = null;
+    let paymentsData = [];
+    let defaultStartDate = '2024-12-15';
+
+    // Show customer data immediately (fallback)
+    function showCustomerData() {
+      console.log('Customer page: Showing fallback customer data...');
+      
+      // Get customer ID from URL
+      const customerId = getCustomerIdFromUrl();
+      
+      // Set fallback customer data based on known customers
+      customerData = getFallbackCustomerData(customerId);
+      
+      console.log('Customer page: Using fallback customer data:', customerData);
+      
+      // Update UI immediately
+      updateCustomerInfo();
+      generatePaymentTimeline();
+      updateAmountCollectedCard();
+    }
+
+    // Get customer ID from URL parameters
+    function getCustomerIdFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id') || '3';
+    }
+
+    // Get fallback customer data based on ID
+    function getFallbackCustomerData(customerId) {
+      // Return minimal fallback data - real data will be loaded from database
+      return {
+        id: customerId,
+        name: 'Loading...',
+        phone: 'Loading...',
+        address: 'Loading...',
+        start_date: '2024-12-15',
+        monthly_amount: 0,
+        customer_code: `GD7- ${customerId}`
+      };
+    }
+
+    // Load customer data from API
+    async function loadCustomerData() {
+      try {
+        console.log('Customer page: Loading customer data from API...');
+        
+        const customerId = getCustomerIdFromUrl();
+        
+        // Load default start date from environment
+        await loadDefaultStartDate();
+        
+        // Load customer data from API
+        const customerResult = await loadCustomerFromAPI(customerId);
+        
+        // Load payments data
+        await loadPaymentsFromAPI(customerId);
+        
+        // Update UI with real data
+        updateCustomerInfo();
+        generatePaymentTimeline();
+        updateAmountCollectedCard();
+        
+        console.log('Customer page: Data loading completed successfully');
+        
+      } catch (error) {
+        console.error('Customer page: Error loading customer data:', error);
+        // Don't show error to user, fallback data is already displayed
+      }
+    }
+
+    // Load default start date from environment
+    async function loadDefaultStartDate() {
+      try {
+        if (window.electronAPI && window.electronAPI.getDefaultStartDate) {
+          defaultStartDate = await window.electronAPI.getDefaultStartDate();
+          console.log('Customer page: Default start date loaded:', defaultStartDate);
+        }
+      } catch (error) {
+        console.error('Customer page: Error getting default start date:', error);
+      }
+    }
+
+    // Load customer data from API
+    async function loadCustomerFromAPI(customerId) {
+      try {
+        console.log('Customer page: Fetching customer data for ID:', customerId);
+        
+        if (!window.electronAPI || !window.electronAPI.customer) {
+          console.log('Customer page: electronAPI not available, using fallback data');
+          return null;
+        }
+        
+        const customerResult = await window.electronAPI.customer.getById(customerId);
+        console.log('Customer page: Customer result:', customerResult);
+        
+        if (customerResult.success && customerResult.customer) {
+          customerData = customerResult.customer;
+          console.log('Customer page: Real customer data loaded:', customerData);
+          return customerResult;
+        } else {
+          console.log('Customer page: Customer not found, keeping fallback data');
+          return null;
+        }
+        
+      } catch (error) {
+        console.error('Customer page: Error loading customer from API:', error);
+        return null;
+      }
+    }
+
+    // Load payments data from API
+    async function loadPaymentsFromAPI(customerId) {
+      try {
+        console.log('Customer page: Fetching payments for customer ID:', customerId);
+        
+        if (!window.electronAPI || !window.electronAPI.customer) {
+          console.log('Customer page: electronAPI not available, using empty payments');
+          paymentsData = [];
+          return;
+        }
+        
+        const paymentsResult = await window.electronAPI.customer.getPayments(customerId);
+        console.log('Customer page: Payments result:', paymentsResult);
+        
+        if (paymentsResult.success && paymentsResult.payments) {
+          paymentsData = paymentsResult.payments;
+          console.log('Customer page: Payments data loaded:', paymentsData.length, 'payments');
+        } else {
+          paymentsData = [];
+          console.log('Customer page: No payments found');
+        }
+        
+      } catch (error) {
+        console.error('Customer page: Error loading payments from API:', error);
+        paymentsData = [];
+      }
+    }
+
+    // Refresh payment data and update UI
+    async function refreshPaymentData() {
+      const customerId = getCustomerIdFromUrl();
+      if (customerId) {
+        console.log('Customer page: Refreshing payment data for customer:', customerId);
+        await loadPaymentsFromAPI(customerId);
+        generatePaymentTimeline();
+        updateCustomerInfo(); // Update badge status
+        updateAmountCollectedCard(); // Update amount collected card
+        console.log('Customer page: Payment data refreshed successfully');
+      }
+    }
+
+    // Check if customer is fully paid (all payments including current month)
+    function isCustomerFullyPaid() {
+      if (!customerData || !paymentsData) {
+        return false;
+      }
+
+      const startDate = new Date(customerData.start_date);
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Calculate how many months have passed since start date
+      const monthsPassed = (currentYear - startDate.getFullYear()) * 12 + (currentMonth - startDate.getMonth()) + 1;
+      
+      // Create a map of payments by month-year
+      const paymentsByMonth = {};
+      paymentsData.forEach(payment => {
+        // Use month_year field instead of payment_date to determine which month the payment is for
+        const monthYear = payment.month_year; // Format: "2024-12"
+        if (monthYear) {
+          const [year, month] = monthYear.split('-');
+          const monthKey = `${year}-${parseInt(month) - 1}`; // Convert to 0-based month index
+          paymentsByMonth[monthKey] = payment;
+        }
+      });
+
+      // Check if all months from start to current month are paid
+      for (let i = 0; i < monthsPassed; i++) {
+        const checkDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+        const monthKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}`;
+        
+        if (!paymentsByMonth[monthKey]) {
+          return false; // Found an unpaid month
+        }
+      }
+
+      return true; // All months are paid
+    }
+
+    // Update customer information in UI
+    function updateCustomerInfo() {
+      if (!customerData) {
+        console.error('No customer data available');
+        return;
+      }
+
+      console.log('Updating customer info with data:', customerData);
+
+      // Update customer name
+      const customerNameEl = document.getElementById('customerName');
+      if (customerNameEl) {
+        customerNameEl.textContent = customerData.name || 'Unknown Customer';
+      }
+
+      // Update customer address
+      const customerAddressEl = document.getElementById('customerAddress');
+      if (customerAddressEl) {
+        const address = customerData.address;
+        if (address && address.trim() !== '') {
+          customerAddressEl.textContent = address;
+        } else {
+          customerAddressEl.textContent = 'No address provided';
+          customerAddressEl.classList.add('text-slate-400', 'italic');
+        }
+      }
+
+      // Update customer details
+      const customerDetailsEl = document.getElementById('customerDetails');
+      if (customerDetailsEl) {
+        customerDetailsEl.textContent = 
+          `${customerData.phone || 'No phone'} • Started on ${customerData.start_date || 'Unknown date'}`;
+      }
+
+      // Show/hide shining badge based on payment status
+      const shiningBadgeEl = document.getElementById('shiningBadge');
+      if (shiningBadgeEl) {
+        if (isCustomerFullyPaid()) {
+          shiningBadgeEl.classList.remove('hidden');
+          console.log('Customer is fully paid! Showing shining badge.');
+        } else {
+          shiningBadgeEl.classList.add('hidden');
+        }
+      }
+
+      // Update Add Payment button with customer ID
+      const addPaymentBtn = document.getElementById('addPaymentBtn');
+      if (addPaymentBtn && customerData) {
+        addPaymentBtn.href = `add-payment.html?id=${customerData.id}`;
+      }
+      
+      // Update monthly amount (without animation)
+      const monthlyAmountEl = document.getElementById('monthlyAmount');
+      if (monthlyAmountEl) {
+        const amount = customerData.monthly_amount || 0;
+        monthlyAmountEl.textContent = `₹ ${amount.toLocaleString('en-IN')}`;
+      }
+      
+      // Update program details
+      const programDetailsEl = document.getElementById('programDetails');
+      if (programDetailsEl) {
+        const startDate = new Date(customerData.start_date);
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const startMonth = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+        
+        programDetailsEl.textContent = `Program started ${startMonth} • 30 months`;
+      }
+      
+      // Update timeline title
+      const timelineTitleEl = document.getElementById('timelineTitle');
+      if (timelineTitleEl) {
+        const startDate = new Date(customerData.start_date);
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const startMonth = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+        
+        timelineTitleEl.textContent = `30-Month Payment Timeline (${startMonth} →)`;
+      }
+    }
+
+    // Update amount collected card with count-up animation
+    function updateAmountCollectedCard() {
+      if (!paymentsData || paymentsData.length === 0) {
+        document.getElementById('totalAmountCollected').textContent = '₹ 0';
+        document.getElementById('paymentCount').textContent = '0 payments';
+        return;
+      }
+
+      // Calculate total amount collected
+      const totalAmount = paymentsData.reduce((sum, payment) => {
+        return sum + (parseFloat(payment.amount) || 0);
+      }, 0);
+
+      // Update the card with count-up animation
+      const totalAmountEl = document.getElementById('totalAmountCollected');
+      const paymentCountEl = document.getElementById('paymentCount');
+      
+      if (totalAmountEl) {
+        // Get current displayed amount
+        const currentText = totalAmountEl.textContent;
+        const currentAmount = parseInt(currentText.replace(/[₹,\s]/g, '')) || 0;
+        
+        // Animate from current amount to new amount
+        animateCountUp(totalAmountEl, currentAmount, totalAmount);
+      }
+      
+      if (paymentCountEl) {
+        const count = paymentsData.length;
+        paymentCountEl.textContent = `${count} payment${count !== 1 ? 's' : ''}`;
+      }
+    }
+
+    // Animate count-up from start to end value
+    function animateCountUp(element, startValue, endValue) {
+      const duration = 1000; // 1 second
+      const startTime = performance.now();
+      
+      function updateCount(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const currentValue = Math.floor(startValue + (endValue - startValue) * easeOutQuart);
+        
+        // Update the display
+        element.textContent = `₹ ${currentValue.toLocaleString('en-IN')}`;
+        
+        // Add animation class for visual feedback
+        element.classList.add('amount-counting');
+        setTimeout(() => {
+          element.classList.remove('amount-counting');
+        }, 100);
+        
+        // Continue animation if not finished
+        if (progress < 1) {
+          requestAnimationFrame(updateCount);
+        }
+      }
+      
+      requestAnimationFrame(updateCount);
+    }
+
+    // Generate payment timeline based on real data
+    function generatePaymentTimeline() {
+      const container = document.getElementById('calendarGrid');
+      if (!container || !customerData) {
+        console.error('Container or customer data not available');
+        return;
+      }
+      
+      container.innerHTML = ''; // Clear loading message
+      
+      const startDate = new Date(customerData.start_date);
+      const count = 30; // Always show 30 months
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const now = new Date();
+      
+      console.log('Generating timeline for customer:', customerData.name, 'Starting from:', startDate);
+      console.log('Payments data:', paymentsData);
+      
+      // Create a map of payments by month-year for quick lookup
+      const paymentsByMonth = {};
+      paymentsData.forEach(payment => {
+        // Use month_year field instead of payment_date to determine which month the payment is for
+        const monthYear = payment.month_year; // Format: "2024-12"
+        if (monthYear) {
+          const [year, month] = monthYear.split('-');
+          const monthKey = `${year}-${parseInt(month) - 1}`; // Convert to 0-based month index
+          paymentsByMonth[monthKey] = payment;
+        }
+      });
+
+      console.log('Payments by month:', paymentsByMonth);
+
+      for (let i = 0; i < count; i++) {
+        const monthDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+        const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+        const payment = paymentsByMonth[monthKey];
+        
+        const monthLabel = `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()} - ${i+1}`;
+        const isCurrent = monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
+        const isPaid = !!payment;
+        const isPastMonth = monthDate < now;
+        const isFutureMonth = monthDate > now;
+
+        console.log(`Month ${i+1}: ${monthLabel}, Paid: ${isPaid}, Current: ${isCurrent}, Past: ${isPastMonth}, Future: ${isFutureMonth}`);
+
+        // Icons
+        const cashSvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v12H3z" opacity=".3"/><path d="M21 5H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1m-1 12H4v-2a2 2 0 0 0 2-2 2 2 0 0 0-2-2V7h16v2a2 2 0 0 0-2 2 2 2 0 0 0 2 2z"/></svg>';
+        const gpaySvg = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 48 48"><path fill="#34a853" d="M24 9.5c3.7 0 6.3 1.6 7.8 3l5.3-5.1C33.7 4.7 29.3 3 24 3 14.8 3 6.9 8.3 3.3 16l6.8 5.3C12 15 17.5 9.5 24 9.5z"/><path fill="#4285f4" d="M46.5 24.5c0-1.6-.1-2.8-.4-4.1H24v7.8h12.8c-.3 2.1-1.8 5.3-5.3 7.5l8.2 6.3c4.8-4.4 7.8-10.9 7.8-17.5z"/><path fill="#fbbc05" d="M10.1 28.7A14.5 14.5 0 0 1 9.3 24c0-1.6.3-3.1.8-4.5L3.3 14C1.8 17.3 1 20.6 1 24s.8 6.7 2.3 10l6.8-5.3z"/><path fill="#ea4335" d="M24 47c6.5 0 12-2.1 16-5.8l-8.2-6.3c-2.2 1.5-5.2 2.6-7.8 2.6-6.5 0-12-5.5-13.9-12.8l-6.8 5.3C6.9 39.7 14.8 47 24 47z"/></svg>';
+
+        // Status chips - show "Paid" for any month with payment, "Unpaid" only for past months
+        let statusChip = '';
+        if (isPaid) {
+          // Show "Paid" for any month that has a payment (past, current, or future)
+          statusChip = '<span class="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium">Paid</span>';
+        } else if (isPastMonth) {
+          // Only show "Unpaid" for past months that are actually due
+          statusChip = '<span class="inline-flex items-center rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium">Unpaid</span>';
+        }
+        // For future months without payment, no status chip is shown
+
+        let meta = '';
+        if (isPaid) {
+          // Show payment details for any month that has a payment (including advance payments)
+          const paymentDate = new Date(payment.payment_date);
+          const methodIsGpay = payment.payment_method && payment.payment_method.toLowerCase().includes('gpay');
+          
+          meta = `<div class="mt-2 text-[11px] text-slate-600">
+                   <div class="inline-flex items-center gap-2">
+                     <span class="inline-flex items-center gap-1 ${methodIsGpay ? 'text-blue-600' : 'text-emerald-700'}">
+                       ${methodIsGpay ? gpaySvg : cashSvg}
+                       <span>${methodIsGpay ? 'GPay' : 'Cash'}</span>
+                     </span>
+                     <span class="text-slate-400">•</span>
+                     <span>${paymentDate.getDate()} ${monthNames[paymentDate.getMonth()]} ${paymentDate.getFullYear()}</span>
+                   </div>
+                   ${payment.transaction_id ? `<div class="mt-1 text-[10px] text-slate-500 font-mono">TXN: ${payment.transaction_id}</div>` : ''}
+                 </div>`;
+        } else if (isPastMonth) {
+          // Only show "Due" for past months without payment
+          meta = `<div class="mt-2 text-[11px] text-slate-400 inline-flex items-center gap-1">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 0 0-2 2v1h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2z"/><path d="M21 9H3v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zm-4 4h-4v4h4z" opacity=".4"/></svg>
+               <span>Due</span>
+             </div>`;
+        }
+        // For future months without payment, no meta information is shown
+
+        const currentBadge = isCurrent
+          ? '<span class="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-700 text-white ring-1 ring-red-800 font-medium">Current</span>'
+          : '';
+
+        // Card styling based on status
+        let cardBorderColor = 'border-slate-200'; // Default for future months without payment
+        if (isPaid) {
+          // Green border for any month with payment (including advance payments)
+          cardBorderColor = 'border-green-200';
+        } else if (isPastMonth) {
+          // Red border for past months without payment
+          cardBorderColor = 'border-red-200';
+        }
+
+        const tile = document.createElement('div');
+        tile.className = 'relative group rounded-xl';
+        
+        // Add tooltip class and data if payment has notes
+        let tooltipClass = '';
+        let tooltipData = '';
+        if (isPaid && payment.notes && payment.notes.trim()) {
+          tooltipClass = 'payment-tooltip';
+          tooltipData = `data-tooltip="${payment.notes}"`;
+        }
+        
+        tile.innerHTML = `
+          <div class="bg-white rounded-xl p-4 border ${isCurrent ? 'border-red-700' : cardBorderColor} shadow-card h-[130px] w-full hover:shadow-lg transition-shadow duration-200 ${tooltipClass}" ${tooltipData}>
+            <div class="flex flex-col h-full">
+              ${currentBadge}
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-medium text-slate-800">${monthLabel}</div>
+                ${statusChip}
+              </div>
+              <div class="flex-1 flex items-end">
+                ${meta}
+              </div>
+            </div>
+          </div>`;
+        container.appendChild(tile);
+      }
+      
+      console.log(`Generated ${count} month tiles for customer timeline`);
+      
+      // Update shining badge after timeline is generated
+      const shiningBadgeEl = document.getElementById('shiningBadge');
+      if (shiningBadgeEl) {
+        if (isCustomerFullyPaid()) {
+          shiningBadgeEl.classList.remove('hidden');
+          console.log('Customer is fully paid! Showing shining badge.');
+        } else {
+          shiningBadgeEl.classList.add('hidden');
+        }
+      }
+    }
+
+    // Show error message
+    function showError(message) {
+      const container = document.getElementById('calendarGrid');
+      if (container) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-red-500">${message}</div>`;
+      }
+    }
+
+
+    // Smooth navigation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeNavigate(event, href) {
+        if (prefersReduced) return;
+        event.preventDefault();
+        document.body.classList.add('opacity-0');
+        setTimeout(() => { window.location.href = href; }, 180);
+      }
+      document.addEventListener('click', function(e) {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const url = new URL(a.href, window.location.href);
+        const sameOrigin = url.origin === window.location.origin;
+        if (sameOrigin) fadeNavigate(e, a.href);
+      });
+    })();
+
+    // Initialize page - SIMPLE AND BULLETPROOF
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Customer page: DOM loaded, initializing...');
+      
+      // Show customer data immediately (with loading state)
+      showCustomerData();
+      
+      // Load real customer data from database
+      loadCustomerData();
+      
+      
+      // Add hover effects
+      addHoverEffects();
+      
+      // Add page visibility change listener to refresh data when returning from other pages
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          console.log('Customer page: Page became visible, refreshing payment data...');
+          refreshPaymentData();
+        }
+      });
+
+      // Also refresh when window gains focus (for better cross-browser support)
+      window.addEventListener('focus', function() {
+        console.log('Customer page: Window gained focus, refreshing payment data...');
+        refreshPaymentData();
+      });
+      
+      console.log('Customer page: Initialization completed');
+    });
+
+
+    // Add hover effects to timeline tiles
+    function addHoverEffects() {
+      setTimeout(() => {
+        document.querySelectorAll('#calendarGrid > div').forEach(tile => {
+          tile.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'transform 0.3s ease';
+          });
+          
+          tile.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+          });
+        });
+      }, 100);
+    }
+  </script>
+</body>
+</html>

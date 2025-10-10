@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Payment - HSM-Tera Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        .toast {
+            animation: slideInRight 0.3s ease-out;
+        }
+        .toast.hide {
+            animation: slideOutRight 0.3s ease-in;
+        }
+        .toast-progress-bar {
+            animation: progress 3s linear;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    <div id="navbar-container"></div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Add Payment</h2>
+            <p class="text-gray-600 mt-2">Record a new payment for the customer</p>
+        </div>
+
+        <form id="addPaymentForm" class="bg-white rounded-lg shadow-md p-8 space-y-6">
+            <!-- Customer Information -->
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Customer Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="customer" class="block text-sm font-medium text-gray-700 mb-2">Customer</label>
+                        <input type="text" id="customer" name="customer" readonly 
+                               class="w-full px-4 py-3 bg-slate-50 text-slate-600 border border-gray-300 rounded-lg"
+                               value="Loading...">
+                    </div>
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Monthly Amount</label>
+                        <input type="text" id="amount" name="amount" readonly 
+                               class="w-full px-4 py-3 bg-slate-50 text-slate-600 border border-gray-300 rounded-lg"
+                               value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="month" class="block text-sm font-medium text-gray-700 mb-2">Payment Month *</label>
+                        <select id="month" name="month" required 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Select Month</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="paymentDate" class="block text-sm font-medium text-gray-700 mb-2">Payment Date *</label>
+                        <input type="date" id="paymentDate" name="paymentDate" required 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Method</h3>
+                <div class="space-y-4">
+                    <div class="flex space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentMethod" value="cash" checked 
+                                   class="mr-2 text-blue-600 focus:ring-blue-500">
+                            <span class="text-gray-700">Cash</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentMethod" value="gpay" 
+                                   class="mr-2 text-blue-600 focus:ring-blue-500">
+                            <span class="text-gray-700">Google Pay</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="paymentMethod" value="bank" 
+                                   class="mr-2 text-blue-600 focus:ring-blue-500">
+                            <span class="text-gray-700">Bank Transfer</span>
+                        </label>
+                    </div>
+                    
+                    <div id="transactionIdField" class="hidden">
+                        <label for="txnId" class="block text-sm font-medium text-gray-700 mb-2">Transaction ID</label>
+                        <input type="text" id="txnId" name="txnId" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Enter transaction ID">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Additional Information</h3>
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea id="notes" name="notes" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Add any additional notes about this payment"></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="goBack()" 
+                        class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    Add Payment
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <script src="../components/navbar.js"></script>
+    <script>
+        let customerData = null;
+        let paymentsData = [];
+
+        // Check authentication
+        async function checkAuthentication() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            try {
+                const result = await window.electronAPI.auth.validateSession(token);
+                if (!result.valid) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        // Get customer ID from URL
+        function getCustomerIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // Load customer data
+        async function loadCustomerData() {
+            const customerId = getCustomerIdFromUrl();
+            if (!customerId) {
+                showToast('No customer ID provided', 'error');
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.customer.getById(customerId);
+                if (result.success) {
+                    customerData = result.customer;
+                    updateCustomerInfo();
+                } else {
+                    showToast('Failed to load customer data', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading customer data:', error);
+                showToast('Error loading customer data', 'error');
+            }
+        }
+
+        // Load payments data
+        async function loadPaymentsData() {
+            const customerId = getCustomerIdFromUrl();
+            if (!customerId) return;
+
+            try {
+                const result = await window.electronAPI.payment.getByCustomerId(customerId);
+                if (result.success) {
+                    paymentsData = result.payments;
+                    generateMonthOptions();
+                }
+            } catch (error) {
+                console.error('Error loading payments data:', error);
+            }
+        }
+
+        // Update customer info in form
+        function updateCustomerInfo() {
+            if (customerData) {
+                document.getElementById('customer').value = `${customerData.name} (${customerData.customer_code})`;
+                document.getElementById('amount').value = `₹${customerData.monthly_amount.toLocaleString()}`;
+            }
+        }
+
+        // Generate month options
+        async function generateMonthOptions() {
+            try {
+                const defaultStartDate = await window.electronAPI.getDefaultStartDate();
+                const startDate = new Date(defaultStartDate);
+                const currentDate = new Date();
+                
+                const monthSelect = document.getElementById('month');
+                const paidMonths = new Set(paymentsData.map(payment => payment.month_year));
+                
+                // Clear existing options
+                monthSelect.innerHTML = '<option value="">Select Month</option>';
+                
+                let currentMonth = new Date(startDate);
+                let monthNumber = 1;
+                
+                // Generate 30 months from start date
+                while (monthNumber <= 30) {
+                    const monthYear = currentMonth.toISOString().slice(0, 7); // YYYY-MM format
+                    const monthName = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    
+                    // Skip already paid months
+                    if (!paidMonths.has(monthYear)) {
+                        const option = document.createElement('option');
+                        option.value = monthYear;
+                        option.textContent = `${monthName} - ${monthNumber}`;
+                        monthSelect.appendChild(option);
+                    }
+                    
+                    // Move to next month
+                    currentMonth.setMonth(currentMonth.getMonth() + 1);
+                    monthNumber++;
+                }
+            } catch (error) {
+                console.error('Error generating month options:', error);
+            }
+        }
+
+        // Setup payment method toggle
+        function setupPaymentMethodToggle() {
+            const paymentMethods = document.querySelectorAll('input[name="paymentMethod"]');
+            const transactionIdField = document.getElementById('transactionIdField');
+            const txnIdInput = document.getElementById('txnId');
+
+            paymentMethods.forEach(method => {
+                method.addEventListener('change', () => {
+                    if (method.value === 'gpay' || method.value === 'bank') {
+                        transactionIdField.classList.remove('hidden');
+                        txnIdInput.required = false; // Make it optional
+                    } else {
+                        transactionIdField.classList.add('hidden');
+                        txnIdInput.required = false;
+                    }
+                });
+            });
+        }
+
+        // Setup form handling
+        function setupFormHandling() {
+            document.getElementById('addPaymentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const customerId = getCustomerIdFromUrl();
+                
+                const paymentData = {
+                    customer_id: parseInt(customerId),
+                    amount: customerData.monthly_amount,
+                    payment_date: formData.get('paymentDate'),
+                    month_year: formData.get('month'),
+                    payment_method: formData.get('paymentMethod'),
+                    transaction_id: formData.get('txnId') || null,
+                    notes: formData.get('notes') || null
+                };
+
+                try {
+                    const result = await window.electronAPI.payment.add(paymentData);
+                    
+                    if (result.success) {
+                        showToast('Payment added successfully!', 'success');
+                        // Redirect to customer page after a short delay
+                        setTimeout(() => {
+                            window.location.href = `customer.html?id=${customerId}`;
+                        }, 1500);
+                    } else {
+                        showToast(result.error || 'Failed to add payment', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error adding payment:', error);
+                    showToast('An error occurred while adding the payment', 'error');
+                }
+            });
+        }
+
+        // Setup smooth navigation
+        function setupSmoothNavigation() {
+            // Add fade-out effect when navigating
+            document.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.href) {
+                    e.preventDefault();
+                    document.body.style.opacity = '0.5';
+                    document.body.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        window.location.href = e.target.href;
+                    }, 300);
+                }
+            });
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? 
+                '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
+                '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            
+            toast.className = `toast ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg mb-4 flex items-center space-x-3 min-w-80`;
+            toast.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+                <div class="toast-progress absolute bottom-0 left-0 h-1 bg-white opacity-30 rounded-b-lg toast-progress-bar"></div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => {
+                    if (container.contains(toast)) {
+                        container.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Go back function
+        function goBack() {
+            const customerId = getCustomerIdFromUrl();
+            window.location.href = `customer.html?id=${customerId}`;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAuthenticated = await checkAuthentication();
+            if (isAuthenticated) {
+                await loadCustomerData();
+                await loadPaymentsData();
+                setupPaymentMethodToggle();
+                setupFormHandling();
+                setupSmoothNavigation();
+                
+                // Set default payment date to today
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('paymentDate').value = today;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HSM-Tera | Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = { 
+      theme: { 
+        extend: { 
+          colors: { 
+            brand: { 
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b' 
+            }, 
+            success: '#10b981', 
+            danger: '#dc2626', 
+            warning: '#f59e0b' 
+          }, 
+          boxShadow: { 
+            card: '0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15)' 
+          } 
+        } 
+      } 
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style> 
+    html, body { 
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; 
+    } 
+  </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  <script src="../components/navbar.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white transition-opacity duration-300 opacity-0">
+  <!-- Navbar Container -->
+  <div id="navbar-container"></div>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header Section -->
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold text-slate-800">Dashboard</h1>
+      <div class="flex items-center gap-3 bg-gradient-to-r from-brand-50 to-emerald-50 rounded-xl border border-brand-200 px-4 py-3 shadow-lg ring-1 ring-brand-100">
+        <div class="flex items-center justify-center w-8 h-8 bg-brand-100 rounded-lg">
+          <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <span class="text-brand-700 font-semibold">View Month:</span>
+        <select id="monthSelector" class="px-3 py-2 border border-brand-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm bg-white shadow-sm font-medium text-brand-800">
+          <option value="">Select Month</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Dashboard Cards -->
+    <div class="grid md:grid-cols-4 gap-4 mb-6">
+      <!-- Total Customers Card -->
+      <div class="rounded-2xl p-[1px] bg-gradient-to-br from-brand-300/50 via-brand-100 to-transparent">
+        <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-card cursor-pointer hover:shadow-lg transition-all duration-200" onclick="navigateToCustomers()">
+            <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="text-sm text-slate-500">Total Customers</div>
+              <div class="mt-1 text-2xl font-semibold" data-countup data-countup-value="0" id="totalCustomers">0</div>
+              </div>
+            <div class="flex-shrink-0 ml-3">
+              <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+      </div>
+
+      <!-- Unpaid Card -->
+      <div class="rounded-2xl p-[1px] bg-gradient-to-br from-red-300/50 via-red-100 to-transparent">
+        <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-card">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="text-sm text-slate-500">Unpaid (<span id="unpaidMonthLabel">This Month</span>)</div>
+              <div class="mt-1 text-2xl font-semibold text-danger" data-countup data-countup-value="0" id="unpaidThisMonth">0</div>
+            </div>
+            <div class="flex-shrink-0 ml-3">
+              <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paid Card -->
+      <div class="rounded-2xl p-[1px] bg-gradient-to-br from-green-300/50 via-green-100 to-transparent">
+        <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-card">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="text-sm text-slate-500">Paid (<span id="paidMonthLabel">This Month</span>)</div>
+              <div class="mt-1 text-2xl font-semibold text-success" data-countup data-countup-value="0" id="paidThisMonth">0</div>
+            </div>
+            <div class="flex-shrink-0 ml-3">
+              <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Collected Card -->
+      <div class="rounded-2xl p-[1px] bg-gradient-to-br from-blue-300/50 via-blue-100 to-transparent">
+        <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-card">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="text-sm text-slate-500">Collected (<span id="collectedMonthLabel">This Month</span>)</div>
+              <div class="mt-1 text-2xl font-semibold text-blue-600" data-countup data-countup-value="0" data-countup-prefix="₹ " id="totalCollected">₹ 0</div>
+            </div>
+            <div class="flex-shrink-0 ml-3">
+              <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 bg-white">
+      <div class="p-4 border-b border-slate-200 bg-gradient-to-r from-brand-50 to-transparent">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-800">Monthly Collection Overview</h2>
+          <div class="flex items-center gap-2 text-sm text-slate-500">
+            <div class="w-3 h-3 rounded-full bg-brand-500"></div>
+            <span>Amount Collected</span>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        <div class="h-80">
+          <canvas id="monthlyChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Fade in animation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeIn() {
+        if (prefersReduced) return document.body.classList.remove('opacity-0');
+        requestAnimationFrame(() => document.body.classList.remove('opacity-0'));
+      }
+      document.addEventListener('DOMContentLoaded', fadeIn);
+    })();
+
+    // Count-up animation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function animateCount(el) {
+        const target = parseFloat(el.getAttribute('data-countup-value') || '0');
+        const prefix = el.getAttribute('data-countup-prefix') || '';
+        const duration = 900; // ms
+        const start = performance.now();
+        const isCurrency = !!prefix;
+        function step(now) {
+          const progress = Math.min(1, (now - start) / duration);
+          const ease = 1 - Math.pow(1 - progress, 3);
+          const value = Math.floor(target * ease);
+          el.textContent = isCurrency ? `${prefix}${value.toLocaleString('en-IN')}` : value.toLocaleString('en-IN');
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+      function initCountups() {
+        if (prefersReduced) return;
+        document.querySelectorAll('[data-countup]').forEach(animateCount);
+      }
+      window.initCountups = initCountups; // Make it globally accessible
+      window.addEventListener('DOMContentLoaded', initCountups);
+    })();
+
+    // Global variables
+    let customersData = [];
+    let paymentsData = [];
+    let selectedMonthYear = '';
+    let defaultStartDate = '2024-12-15';
+    let isLoadingDashboardData = false;
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Dashboard: Initializing...');
+      
+      // Check authentication
+      checkAuthentication();
+      
+      // Load dashboard data
+      loadDashboardData();
+      
+      console.log('Dashboard: Initialization completed');
+    });
+
+    // Check authentication
+    function checkAuthentication() {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.log('Dashboard: No auth token found, redirecting to login');
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Validate token with backend
+      if (window.electronAPI && window.electronAPI.auth) {
+        window.electronAPI.auth.validateSession(token)
+          .then(result => {
+            if (!result.valid) {
+              console.log('Dashboard: Token validation failed, redirecting to login');
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+              window.location.href = 'login.html';
+            } else {
+              console.log('Dashboard: Token validated successfully');
+            }
+          })
+          .catch(error => {
+            console.error('Dashboard: Error validating token:', error);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+          });
+      }
+    }
+
+    // Load dashboard data
+    async function loadDashboardData() {
+      if (isLoadingDashboardData) {
+        console.log('Dashboard: Already loading data, skipping...');
+        return;
+      }
+      
+      isLoadingDashboardData = true;
+      console.log('Dashboard: Loading dashboard data...');
+      
+      try {
+        // Load default start date
+        await loadDefaultStartDate();
+        
+        // Load customers and payments data
+        await Promise.all([
+          loadCustomersData(),
+          loadPaymentsData()
+        ]);
+        
+        // Generate month options (automatically sets current month as default)
+        await generateMonthOptions();
+        
+        // Update dashboard cards
+        updateDashboardCards();
+        
+        // Create chart
+        createMonthlyCollectionChart();
+        
+        console.log('Dashboard: Data loading completed successfully');
+        
+      } catch (error) {
+        console.error('Dashboard: Error loading data:', error);
+      } finally {
+        isLoadingDashboardData = false;
+      }
+    }
+
+    // Load default start date from environment
+    async function loadDefaultStartDate() {
+      try {
+        if (window.electronAPI && window.electronAPI.getDefaultStartDate) {
+          defaultStartDate = await window.electronAPI.getDefaultStartDate();
+          console.log('Dashboard: Default start date loaded:', defaultStartDate);
+        }
+      } catch (error) {
+        console.error('Dashboard: Error getting default start date:', error);
+      }
+    }
+
+    // Load customers data
+    async function loadCustomersData() {
+      try {
+        console.log('Dashboard: Loading customers data...');
+        
+        if (!window.electronAPI || !window.electronAPI.customer) {
+          console.log('Dashboard: electronAPI not available');
+          return;
+        }
+        
+        const result = await window.electronAPI.customer.getAll();
+        console.log('Dashboard: Customers result:', result);
+        
+        if (result.success && result.customers) {
+          customersData = result.customers;
+          console.log('Dashboard: Loaded', customersData.length, 'customers');
+        } else {
+          customersData = [];
+          console.log('Dashboard: No customers found');
+        }
+        
+      } catch (error) {
+        console.error('Dashboard: Error loading customers:', error);
+        customersData = [];
+      }
+    }
+
+    // Load payments data
+    async function loadPaymentsData() {
+      try {
+        console.log('Dashboard: Loading payments data...');
+        
+        if (!window.electronAPI || !window.electronAPI.payment) {
+          console.log('Dashboard: electronAPI not available');
+          return;
+        }
+        
+        const result = await window.electronAPI.payment.getAll();
+        console.log('Dashboard: Payments result:', result);
+        
+        if (result.success && result.payments) {
+          paymentsData = result.payments;
+          console.log('Dashboard: Loaded', paymentsData.length, 'payments');
+        } else {
+          paymentsData = [];
+          console.log('Dashboard: No payments found');
+        }
+        
+      } catch (error) {
+        console.error('Dashboard: Error loading payments:', error);
+        paymentsData = [];
+      }
+    }
+
+    // Generate month options
+    async function generateMonthOptions() {
+      const monthSelector = document.getElementById('monthSelector');
+      if (!monthSelector) return;
+      
+      // Clear existing options
+      monthSelector.innerHTML = '<option value="">Select Month</option>';
+      
+      const startDate = new Date(defaultStartDate);
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const currentMonthYear = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+      
+      console.log('Dashboard: Current date:', now);
+      console.log('Dashboard: Current month year:', currentMonthYear);
+      
+      // Generate months from start date to current month
+      let monthDate = new Date(startDate);
+      let monthNumber = 1;
+      let currentMonthOption = null;
+      
+      // Create end date for the current month (last day of current month)
+      const endDate = new Date(currentYear, currentMonth + 1, 0);
+      
+      while (monthDate <= endDate) {
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthYear = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
+        const displayText = `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()} (${monthNumber})`;
+        
+        const option = document.createElement('option');
+        option.value = monthYear;
+        option.textContent = displayText;
+        monthSelector.appendChild(option);
+        
+        console.log('Dashboard: Generated option:', monthYear, displayText);
+        
+        // Track the current month option
+        if (monthYear === currentMonthYear) {
+          currentMonthOption = option;
+          console.log('Dashboard: Found current month option:', monthYear);
+        }
+        
+        // Move to next month
+        monthDate.setMonth(monthDate.getMonth() + 1);
+        monthNumber++;
+      }
+      
+      // Set current month as default selection
+      if (currentMonthOption) {
+        currentMonthOption.selected = true;
+        selectedMonthYear = currentMonthYear;
+        console.log('Dashboard: Default month set to current month:', currentMonthYear);
+      } else if (monthSelector.options.length > 1) {
+        // Fallback to last option if current month not found
+        const lastOption = monthSelector.options[monthSelector.options.length - 1];
+        lastOption.selected = true;
+        selectedMonthYear = lastOption.value;
+        console.log('Dashboard: Default month set to last available month:', lastOption.value);
+      }
+      
+      console.log('Dashboard: Generated', monthNumber - 1, 'month options');
+    }
+
+    // Update dashboard cards
+    function updateDashboardCards() {
+      console.log('Dashboard: Updating cards for month:', selectedMonthYear);
+      
+      // Calculate stats for selected month
+      const stats = calculateMonthlyStats(selectedMonthYear);
+      
+      // Update cards with animation
+      updateCardWithAnimation('totalCustomers', stats.totalCustomers);
+      updateCardWithAnimation('unpaidThisMonth', stats.unpaidThisMonth);
+      updateCardWithAnimation('paidThisMonth', stats.paidThisMonth);
+      updateCardWithAnimation('totalCollected', stats.totalCollected, '₹');
+      
+      console.log('Dashboard: Cards updated with stats:', stats);
+    }
+
+    // Calculate monthly stats
+    function calculateMonthlyStats(monthYear) {
+      if (!monthYear) {
+        return {
+          totalCustomers: customersData.length,
+          unpaidThisMonth: 0,
+          paidThisMonth: 0,
+          totalCollected: 0
+        };
+      }
+      
+      // Get payments for the selected month
+      const monthPayments = paymentsData.filter(payment => payment.month_year === monthYear);
+      
+      // Get customers who paid for this month
+      const paidCustomerIds = new Set(monthPayments.map(payment => payment.customer_id));
+      
+      // Calculate stats
+      const totalCustomers = customersData.length;
+      const paidThisMonth = paidCustomerIds.size;
+      const unpaidThisMonth = totalCustomers - paidThisMonth;
+      const totalCollected = monthPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
+      
+      return {
+        totalCustomers,
+        unpaidThisMonth,
+        paidThisMonth,
+        totalCollected
+      };
+    }
+
+    // Update card with count-up animation
+    function updateCardWithAnimation(elementId, value, prefix = '') {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      // Update the data attribute for count-up animation
+      element.setAttribute('data-countup-value', value);
+      if (prefix) {
+        element.setAttribute('data-countup-prefix', prefix);
+      }
+      
+      // Trigger count-up animation
+      if (window.initCountups) {
+        window.initCountups();
+      }
+    }
+
+    // Create monthly collection chart
+    function createMonthlyCollectionChart(payments = paymentsData) {
+      const ctx = document.getElementById('monthlyChart');
+      if (!ctx) return;
+      
+      // Destroy existing chart if it exists
+      if (window.monthlyChartInstance) {
+        window.monthlyChartInstance.destroy();
+      }
+      
+      // Group payments by month_year
+      const monthlyData = {};
+      payments.forEach(payment => {
+        const monthYear = payment.month_year;
+        if (monthYear) {
+          if (!monthlyData[monthYear]) {
+            monthlyData[monthYear] = 0;
+          }
+          monthlyData[monthYear] += parseFloat(payment.amount) || 0;
+        }
+      });
+      
+      // Sort months chronologically
+      const sortedMonths = Object.keys(monthlyData).sort();
+      
+      // Prepare chart data
+      const labels = sortedMonths.map(monthYear => {
+        const [year, month] = monthYear.split('-');
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${monthNames[parseInt(month) - 1]} ${year}`;
+      });
+      
+      const data = sortedMonths.map(monthYear => monthlyData[monthYear]);
+      
+      // Create chart
+      window.monthlyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Amount Collected',
+            data: data,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              },
+              ticks: {
+                callback: function(value) {
+                  return '₹' + value.toLocaleString('en-IN');
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          },
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          }
+        }
+      });
+      
+      console.log('Dashboard: Chart created with', labels.length, 'data points');
+    }
+
+    // Month selector change handler
+    document.getElementById('monthSelector').addEventListener('change', function() {
+      selectedMonthYear = this.value;
+      console.log('Dashboard: Month changed to:', selectedMonthYear);
+      updateDashboardCards();
+    });
+
+    // Smooth navigation
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function fadeNavigate(event, href) {
+        if (prefersReduced) return;
+        event.preventDefault();
+        document.body.classList.add('opacity-0');
+        setTimeout(() => { window.location.href = href; }, 180);
+      }
+      document.addEventListener('click', function(e) {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const url = new URL(a.href, window.location.href);
+        const sameOrigin = url.origin === window.location.origin;
+        if (sameOrigin) fadeNavigate(e, a.href);
+      });
+    })();
+
+    // Navigation function for total customers card
+    function navigateToCustomers() {
+      if (window.electronAPI && window.electronAPI.navigation) {
+        window.electronAPI.navigation.navigateTo('pages/customers.html');
+      } else {
+        window.location.href = 'customers.html';
+      }
+    }
+  </script>
+</body>
+</html>

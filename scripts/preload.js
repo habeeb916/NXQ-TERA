@@ -1,0 +1,43 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Expose protected methods that allow the renderer process to use
+// the ipcRenderer without exposing the entire object
+contextBridge.exposeInMainWorld('electronAPI', {
+  // App info
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getAppName: () => ipcRenderer.invoke('get-app-name'),
+  getDefaultStartDate: () => ipcRenderer.invoke('get-default-start-date'),
+
+  // Authentication
+  auth: {
+    login: (credentials) => ipcRenderer.invoke('auth-login', credentials),
+    validateSession: (token) => ipcRenderer.invoke('auth-validate-session', token),
+    logout: (token) => ipcRenderer.invoke('auth-logout', token)
+  },
+
+  // Customer management
+  customer: {
+    add: (customerData) => ipcRenderer.invoke('customer-add', customerData),
+    getAll: () => ipcRenderer.invoke('customer-get-all'),
+    getById: (id) => ipcRenderer.invoke('customer-get-by-id', id),
+    checkCode: (code) => ipcRenderer.invoke('customer-check-code', code),
+    getPayments: (customerId) => ipcRenderer.invoke('customer-get-payments', customerId)
+  },
+
+  // Payment management
+  payment: {
+    add: (paymentData) => ipcRenderer.invoke('payment-add', paymentData),
+    getByCustomerId: (customerId) => ipcRenderer.invoke('payment-get-by-customer', customerId),
+    getAll: () => ipcRenderer.invoke('payment-get-all')
+  },
+
+  // Dashboard
+  dashboard: {
+    getStats: () => ipcRenderer.invoke('dashboard-stats')
+  },
+
+  // Navigation
+  navigation: {
+    navigateTo: (path) => ipcRenderer.invoke('navigate-to', path)
+  }
+});

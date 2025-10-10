@@ -1,0 +1,476 @@
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const path = require('path');
+const AuthService = require('../scripts/auth');
+require('dotenv').config();
+
+// Keep a global reference of the window object
+let mainWindow;
+let authService;
+
+function createWindow() {
+  // Create the browser window
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      preload: path.join(__dirname, 'preload.js')
+    },
+    show: false, // Don't show until ready
+    titleBarStyle: 'default'
+  });
+
+  // Load the HTML file (default to login.html)
+  const startPage = process.argv.includes('--main') ? 'pages/index.html' : 'pages/login.html';
+  mainWindow.loadFile(path.join(__dirname, '..', startPage));
+
+  // Show window when ready to prevent visual flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    
+    // Open DevTools in development
+    if (process.argv.includes('--dev')) {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+
+  // Handle window closed
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  // Handle external links
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
+  });
+}
+
+// This method will be called when Electron has finished initialization
+app.whenReady().then(async () => {
+  // Initialize authentication service
+  try {
+    authService = new AuthService();
+    await authService.init();
+    console.log('All services initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize services:', error);
+  }
+
+  createWindow();
+
+  // On macOS, re-create window when dock icon is clicked
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+
+  // Create application menu
+  createMenu();
+});
+
+// Quit when all windows are closed
+app.on('window-all-closed', () => {
+  // On macOS, keep app running even when all windows are closed
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// Security: Prevent new window creation
+app.on('web-contents-created', (event, contents) => {
+  contents.on('new-window', (event, navigationUrl) => {
+    event.preventDefault();
+    require('electron').shell.openExternal(navigationUrl);
+  });
+  
+  // Handle navigation within the app
+  contents.on('will-navigate', (event, navigationUrl) => {
+    const parsedUrl = new URL(navigationUrl);
+    
+    // Allow navigation to our local HTML files
+    if (parsedUrl.protocol === 'file:') {
+      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html'];
+      const filePath = parsedUrl.pathname;
+      
+      if (allowedFiles.some(file => filePath.endsWith(file))) {
+        return; // Allow navigation
+      }
+    }
+    
+    // Prevent other navigation
+    event.preventDefault();
+  });
+});
+
+// Create application menu
+function createMenu() {
+  const template = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => {
+            mainWindow.webContents.send('menu-new-file');
+          }
+        },
+        {
+          label: 'Open',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => {
+            mainWindow.webContents.send('menu-open-file');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Exit',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About',
+          click: () => {
+            mainWindow.webContents.send('menu-about');
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+// IPC handlers for communication with renderer process
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('get-app-name', () => {
+  return app.getName();
+});
+
+ipcMain.handle('get-default-start-date', () => {
+  return process.env.DEFAULT_START_DATE || '2024-12-15';
+});
+
+// Authentication IPC handlers
+ipcMain.handle('auth-login', async (event, credentials) => {
+  try {
+    if (!authService) {
+      throw new Error('Authentication service not initialized');
+    }
+    
+    console.log('IPC: Received login request for:', credentials.username);
+    const { username, password } = credentials;
+    const result = await authService.login(username, password);
+    console.log('IPC: Login result:', result);
+    return result;
+  } catch (error) {
+    console.error('IPC: Login error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('auth-validate-session', async (event, token) => {
+  try {
+    if (!authService) {
+      throw new Error('Authentication service not initialized');
+    }
+    
+    const result = await authService.validateSession(token);
+    return result;
+  } catch (error) {
+    console.error('Session validation error:', error.message);
+    return {
+      valid: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('auth-logout', async (event, token) => {
+  try {
+    if (!authService) {
+      throw new Error('Authentication service not initialized');
+    }
+    
+    const result = await authService.logout(token);
+    return result;
+  } catch (error) {
+    console.error('Logout error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Customer management IPC handlers
+ipcMain.handle('customer-add', async (event, customerData) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Adding customer with data:', customerData);
+    const result = await authService.db.addCustomer(customerData);
+    console.log('IPC: Customer added successfully:', result);
+    
+    return {
+      success: true,
+      customer: result
+    };
+  } catch (error) {
+    console.error('IPC: Add customer error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('customer-get-all', async (event) => {
+  console.log('IPC: customer-get-all handler called');
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized');
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting all customers');
+    const customers = await authService.db.getCustomers();
+    console.log('IPC: All customers found:', customers.length);
+    
+    return {
+      success: true,
+      customers: customers
+    };
+  } catch (error) {
+    console.error('IPC: Get customers error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('customer-check-code', async (event, customerCode) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Checking if customer code exists:', customerCode);
+    const exists = await authService.db.checkCustomerCodeExists(customerCode);
+    console.log('IPC: Customer code exists:', exists);
+    
+    return {
+      success: true,
+      exists: exists
+    };
+  } catch (error) {
+    console.error('IPC: Check customer code error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('customer-get-by-id', async (event, customerId) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting customer by ID:', customerId);
+    const customer = await authService.db.getCustomerById(customerId);
+    console.log('IPC: Customer found:', customer);
+    
+    return {
+      success: true,
+      customer: customer
+    };
+  } catch (error) {
+    console.error('IPC: Get customer by ID error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('customer-get-payments', async (event, customerId) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting payments for customer:', customerId);
+    const payments = await authService.db.getCustomerPayments(customerId);
+    console.log('IPC: Payments found:', payments.length);
+    
+    return {
+      success: true,
+      payments: payments
+    };
+  } catch (error) {
+    console.error('IPC: Get customer payments error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Payment management IPC handlers
+ipcMain.handle('payment-add', async (event, paymentData) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Adding payment with data:', paymentData);
+    const result = await authService.db.addPayment(paymentData);
+    console.log('IPC: Payment added successfully:', result);
+    
+    return {
+      success: true,
+      payment: result
+    };
+  } catch (error) {
+    console.error('IPC: Add payment error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('payment-get-by-customer', async (event, customerId) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting payments for customer:', customerId);
+    const payments = await authService.db.getCustomerPayments(customerId);
+    console.log('IPC: Payments found:', payments.length);
+    
+    return {
+      success: true,
+      payments: payments
+    };
+  } catch (error) {
+    console.error('IPC: Get payments by customer error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('payment-get-all', async (event) => {
+  console.log('IPC: payment-get-all handler called');
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for payments');
+      throw new Error('Database service not initialized');
+    }
+    
+    console.log('IPC: Getting all payments');
+    const payments = await authService.db.getAllPayments();
+    console.log('IPC: All payments found:', payments.length);
+    
+    return {
+      success: true,
+      payments: payments
+    };
+  } catch (error) {
+    console.error('IPC: Get all payments error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('dashboard-stats', async (event) => {
+  try {
+    if (!authService || !authService.db) {
+      throw new Error('Database service not initialized');
+    }
+    
+    const stats = await authService.db.getDashboardStats();
+    return {
+      success: true,
+      stats: stats
+    };
+  } catch (error) {
+    console.error('Get dashboard stats error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Navigation handler
+ipcMain.handle('navigate-to', (event, targetPath) => {
+  console.log('IPC: Navigate to:', targetPath);
+  if (mainWindow) {
+    const fullPath = path.join(__dirname, '..', targetPath);
+    console.log('IPC: Full path:', fullPath);
+    mainWindow.loadFile(fullPath);
+  }
+});

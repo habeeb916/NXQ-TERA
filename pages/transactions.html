@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions - HSM-Tera Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06)',
+                        'brand-500/25': '0 10px 15px -3px rgba(16, 185, 129, 0.25), 0 4px 6px -2px rgba(16, 185, 129, 0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .table-row-hover:hover {
+            background-color: rgba(16, 185, 129, 0.02);
+        }
+
+        /* Custom date input styling */
+        input[type="date"] {
+            position: relative;
+            cursor: pointer;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Focus state enhancement */
+        input[type="date"]:focus {
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white transition-opacity duration-300 opacity-0">
+    <!-- Navbar -->
+    <div id="navbar-container"></div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">Transactions</h1>
+            <p class="text-slate-600 mt-2">View all payment transactions for the selected date</p>
+        </div>
+
+        <!-- Date Filter Section -->
+        <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card mb-8">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-100 mb-6">
+                <div class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-slate-800">Date Filter</h2>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="space-y-2">
+                    <label class="block text-sm font-semibold text-slate-700">Select Date</label>
+                    <div class="relative">
+                        <button type="button" id="datePickerBtn" 
+                                class="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-left">
+                            <span id="selectedDateText">Today - Oct 10, 2025</span>
+                        </button>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Calendar Modal -->
+        <div id="calendarModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-800">Select Date Range</h3>
+                            <button type="button" id="closeCalendar" class="text-slate-400 hover:text-slate-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Date Range Selection Mode -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-center mb-4">
+                                <div class="flex bg-slate-100 rounded-lg p-1">
+                                    <button type="button" id="singleDateMode" class="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-slate-800 shadow-sm">
+                                        Single Date
+                                    </button>
+                                    <button type="button" id="rangeDateMode" class="px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:text-slate-800">
+                                        Date Range
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Dates Display -->
+                            <div id="selectedDatesDisplay" class="mb-4 p-3 bg-slate-50 rounded-lg">
+                                <div class="text-sm text-slate-600 mb-1">Selected:</div>
+                                <div id="selectedDatesText" class="text-sm font-medium text-slate-800">Today - Oct 10, 2025</div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between mb-3">
+                                <button type="button" id="prevMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </button>
+                                <h4 id="currentMonthYear" class="text-lg font-semibold text-slate-800">October 2025</h4>
+                                <button type="button" id="nextMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Sun</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Mon</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Tue</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Wed</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Thu</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Fri</div>
+                                <div class="text-center text-sm font-medium text-slate-500 py-2">Sat</div>
+                            </div>
+                            
+                            <div id="calendarDays" class="grid grid-cols-7 gap-1">
+                                <!-- Calendar days will be generated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <button type="button" id="clearBtn" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium flex items-center gap-2 border border-red-200 hover:border-red-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Clear
+                            </button>
+                            <button type="button" id="todayBtn" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium flex items-center gap-2 border border-blue-200 hover:border-blue-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Today
+                            </button>
+                            <button type="button" id="selectDateBtn" class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-brand-500/25">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Total Transactions -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Transactions</p>
+                        <p id="totalTransactions" class="text-2xl font-bold text-slate-800">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Collected -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Collected</p>
+                        <p id="totalCollected" class="text-2xl font-bold text-brand-600">₹0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Payments -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Cash Payments</p>
+                        <p id="cashPayments" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 6h18v12H3z" opacity=".3"/>
+                            <path d="M21 5H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1m-1 12H4v-2a2 2 0 0 0 2-2 2 2 0 0 0-2-2V7h16v2a2 2 0 0 0-2 2 2 2 0 0 0 2 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UPI Payments -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">UPI Payments</p>
+                        <p id="upiPayments" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg border border-slate-200">
+                        <svg class="w-6 h-6" viewBox="0 0 48 48">
+                            <path fill="#34a853" d="M24 9.5c3.7 0 6.3 1.6 7.8 3l5.3-5.1C33.7 4.7 29.3 3 24 3 14.8 3 6.9 8.3 3.3 16l6.8 5.3C12 15 17.5 9.5 24 9.5z"/>
+                            <path fill="#4285f4" d="M46.5 24.5c0-1.6-.1-2.8-.4-4.1H24v7.8h12.8c-.3 2.1-1.8 5.3-5.3 7.5l8.2 6.3c4.8-4.4 7.8-10.9 7.8-17.5z"/>
+                            <path fill="#fbbc05" d="M10.1 28.7A14.5 14.5 0 0 1 9.3 24c0-1.6.3-3.1.8-4.5L3.3 14C1.8 17.3 1 20.6 1 24s.8 6.7 2.3 10l6.8-5.3z"/>
+                            <path fill="#ea4335" d="M24 47c6.5 0 12-2.1 16-5.8l-8.2-6.3c-2.2 1.5-5.2 2.6-7.8 2.6-6.5 0-12-5.5-13.9-12.8l-6.8 5.3C6.9 39.7 14.8 47 24 47z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-card">
+            <div class="p-6 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-semibold text-slate-800">Transaction Details</h2>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Customer</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Payment Date</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Method</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Transaction ID</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Notes</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody" class="divide-y divide-slate-200">
+                        <!-- Transactions will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden p-12 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-800 mb-2">No transactions found</h3>
+                <p class="text-slate-600">No payments were recorded for the selected date.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="../components/navbar.js"></script>
+    <script>
+        // Calendar functionality
+        let currentDate = new Date();
+        let selectedDate = new Date();
+        let startDate = null;
+        let endDate = null;
+        let isRangeMode = false;
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+
+        // Set default date to today
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            selectedDate = new Date(today);
+            updateSelectedDateText();
+            
+            // Initialize with empty state first
+            updateSummaryCards([]);
+            updateTransactionsTable([]);
+            
+            // Load today's transactions by default
+            loadTransactions();
+            
+            // Initialize calendar
+            renderCalendar();
+        });
+
+        // Calendar functions
+        function updateSelectedDateText() {
+            let dateText;
+            if (isRangeMode && startDate && endDate) {
+                const startText = startDate.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                const endText = endDate.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                dateText = `${startText} - ${endText}`;
+            } else if (isRangeMode && startDate) {
+                const startText = startDate.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                dateText = `${startText} - Select end date`;
+            } else {
+                dateText = selectedDate.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+            }
+            document.getElementById('selectedDateText').textContent = dateText;
+            document.getElementById('selectedDatesText').textContent = dateText;
+        }
+
+        function renderCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('currentMonthYear').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            const calendarDays = document.getElementById('calendarDays');
+            calendarDays.innerHTML = '';
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'h-10';
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('button');
+                dayElement.className = 'h-10 w-10 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100';
+                dayElement.textContent = day;
+                
+                const currentDayDate = new Date(currentYear, currentMonth, day);
+                const today = new Date();
+                const isToday = currentDayDate.toDateString() === today.toDateString();
+                
+                // Handle single date selection
+                const isSelected = !isRangeMode && currentDayDate.toDateString() === selectedDate.toDateString();
+                
+                // Handle range selection
+                let isRangeStart = false;
+                let isRangeEnd = false;
+                let isInRange = false;
+                
+                if (isRangeMode && startDate && endDate) {
+                    isRangeStart = currentDayDate.toDateString() === startDate.toDateString();
+                    isRangeEnd = currentDayDate.toDateString() === endDate.toDateString();
+                    isInRange = currentDayDate >= startDate && currentDayDate <= endDate;
+                } else if (isRangeMode && startDate) {
+                    isRangeStart = currentDayDate.toDateString() === startDate.toDateString();
+                    isInRange = currentDayDate >= startDate;
+                }
+                
+                // Apply styling
+                if (isToday) {
+                    dayElement.className += ' bg-brand-100 text-brand-600';
+                }
+                if (isSelected) {
+                    dayElement.className += ' bg-brand-600 text-white hover:bg-brand-700';
+                }
+                if (isRangeStart || isRangeEnd) {
+                    dayElement.className += ' bg-brand-600 text-white hover:bg-brand-700';
+                } else if (isInRange) {
+                    dayElement.className += ' bg-brand-50 text-brand-700';
+                }
+                
+                dayElement.addEventListener('click', () => {
+                    if (isRangeMode) {
+                        if (!startDate || (startDate && endDate)) {
+                            // Start new range
+                            startDate = new Date(currentYear, currentMonth, day);
+                            endDate = null;
+                        } else if (startDate && !endDate) {
+                            // Complete range
+                            const clickedDate = new Date(currentYear, currentMonth, day);
+                            if (clickedDate >= startDate) {
+                                endDate = clickedDate;
+                            } else {
+                                endDate = startDate;
+                                startDate = clickedDate;
+                            }
+                        }
+                    } else {
+                        selectedDate = new Date(currentYear, currentMonth, day);
+                    }
+                    updateSelectedDateText();
+                    renderCalendar();
+                });
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        // Load transactions function
+        async function loadTransactions() {
+            if (isRangeMode && startDate && endDate) {
+                // Use date range query
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+                
+                if (!startDateStr || !endDateStr) {
+                    showToast('Please select a valid date range', 'error');
+                    return;
+                }
+                
+                await loadTransactionsByRange(startDateStr, endDateStr);
+            } else if (isRangeMode && startDate) {
+                showToast('Please select an end date for the range', 'error');
+                return;
+            } else {
+                // Use single date query
+                const date = selectedDate.toISOString().split('T')[0];
+                
+                if (!date) {
+                    showToast('Please select a date', 'error');
+                    return;
+                }
+                
+                await loadTransactionsByDate(date);
+            }
+        }
+
+        // Load transactions by single date
+        async function loadTransactionsByDate(date) {
+
+            try {
+                // Show loading state
+                showLoadingState();
+
+                // Check if API is available
+                if (!window.electronAPI || !window.electronAPI.getTransactionsByDate) {
+                    throw new Error('API not available. Please restart the application.');
+                }
+                
+                // Fetch transactions for the selected date
+                const response = await window.electronAPI.getTransactionsByDate(date);
+                
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Failed to fetch transactions');
+                }
+                
+                const transactions = response.transactions || [];
+                
+                // Update summary cards
+                updateSummaryCards(transactions);
+                
+                // Update transactions table
+                updateTransactionsTable(transactions);
+                
+                // Transaction loaded successfully
+                
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                showToast('Failed to load transactions: ' + error.message, 'error');
+                
+                // Show empty state on error
+                updateSummaryCards([]);
+                updateTransactionsTable([]);
+            }
+        }
+
+        // Load transactions by date range
+        async function loadTransactionsByRange(startDate, endDate) {
+            try {
+                // Show loading state
+                showLoadingState();
+
+                // Check if API is available
+                if (!window.electronAPI || !window.electronAPI.getTransactionsByDateRange) {
+                    throw new Error('API not available. Please restart the application.');
+                }
+                
+                // Fetch transactions for the date range
+                const response = await window.electronAPI.getTransactionsByDateRange(startDate, endDate);
+                
+                if (!response || !response.success) {
+                    throw new Error(response?.error || 'Failed to fetch transactions');
+                }
+                
+                const transactions = response.transactions || [];
+                
+                // Update summary cards
+                updateSummaryCards(transactions);
+                
+                // Update transactions table
+                updateTransactionsTable(transactions);
+                
+                // Transactions loaded successfully for date range
+                
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                showToast('Failed to load transactions: ' + error.message, 'error');
+                
+                // Show empty state on error
+                updateSummaryCards([]);
+                updateTransactionsTable([]);
+            }
+        }
+
+        // Update summary cards
+        function updateSummaryCards(transactions) {
+            const totalTransactions = transactions.length;
+            const totalCollected = transactions.reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
+            const cashPayments = transactions.filter(txn => txn.payment_method === 'cash').length;
+            const upiPayments = transactions.filter(txn => txn.payment_method === 'gpay').length;
+
+            document.getElementById('totalTransactions').textContent = totalTransactions;
+            document.getElementById('totalCollected').textContent = `₹${totalCollected.toLocaleString()}`;
+            document.getElementById('cashPayments').textContent = cashPayments;
+            document.getElementById('upiPayments').textContent = upiPayments;
+        }
+
+        // Update transactions table
+        function updateTransactionsTable(transactions) {
+            const tbody = document.getElementById('transactionsTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (transactions.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            
+            tbody.innerHTML = transactions.map(transaction => `
+                <tr class="table-row-hover transition-colors duration-200">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center mr-3">
+                                <span class="text-sm font-semibold text-brand-600">${transaction.customer_name.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-slate-800">${transaction.customer_name}</div>
+                                <div class="text-xs text-slate-500">${transaction.customer_code}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                        ${formatDate(transaction.payment_date)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-semibold text-slate-800">₹${parseFloat(transaction.amount).toLocaleString()}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentMethodClass(transaction.payment_method)}">
+                            ${getPaymentMethodIcon(transaction.payment_method)}
+                            ${getPaymentMethodLabel(transaction.payment_method)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                        ${transaction.transaction_id || '-'}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600 max-w-xs truncate">
+                        ${transaction.notes || '-'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="viewTransactionDetails(${transaction.id})" 
+                                class="text-brand-600 hover:text-brand-800 transition-colors duration-200">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Helper functions
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function getPaymentMethodClass(method) {
+            switch(method) {
+                case 'cash': return 'bg-green-100 text-green-800';
+                case 'gpay': return 'bg-blue-100 text-blue-800';
+                case 'bank': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-slate-100 text-slate-800';
+            }
+        }
+
+        function getPaymentMethodIcon(method) {
+            switch(method) {
+                case 'cash': 
+                    return `<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 6h18v12H3z" opacity=".3"/>
+                        <path d="M21 5H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1m-1 12H4v-2a2 2 0 0 0 2-2 2 2 0 0 0-2-2V7h16v2a2 2 0 0 0-2 2 2 2 0 0 0 2 2z"/>
+                    </svg>`;
+                case 'gpay': 
+                    return `<svg class="w-3 h-3 mr-1" viewBox="0 0 48 48">
+                        <path fill="#34a853" d="M24 9.5c3.7 0 6.3 1.6 7.8 3l5.3-5.1C33.7 4.7 29.3 3 24 3 14.8 3 6.9 8.3 3.3 16l6.8 5.3C12 15 17.5 9.5 24 9.5z"/>
+                        <path fill="#4285f4" d="M46.5 24.5c0-1.6-.1-2.8-.4-4.1H24v7.8h12.8c-.3 2.1-1.8 5.3-5.3 7.5l8.2 6.3c4.8-4.4 7.8-10.9 7.8-17.5z"/>
+                        <path fill="#fbbc05" d="M10.1 28.7A14.5 14.5 0 0 1 9.3 24c0-1.6.3-3.1.8-4.5L3.3 14C1.8 17.3 1 20.6 1 24s.8 6.7 2.3 10l6.8-5.3z"/>
+                        <path fill="#ea4335" d="M24 47c6.5 0 12-2.1 16-5.8l-8.2-6.3c-2.2 1.5-5.2 2.6-7.8 2.6-6.5 0-12-5.5-13.9-12.8l-6.8 5.3C6.9 39.7 14.8 47 24 47z"/>
+                    </svg>`;
+                case 'bank': 
+                    return `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>`;
+                default: return '';
+            }
+        }
+
+        function getPaymentMethodLabel(method) {
+            switch(method) {
+                case 'cash': return 'Cash';
+                case 'gpay': return 'Google Pay';
+                case 'bank': return 'Bank Transfer';
+                default: return method;
+            }
+        }
+
+        function showLoadingState() {
+            const tbody = document.getElementById('transactionsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="flex items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+                            <span class="ml-3 text-slate-600">Loading transactions...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function viewTransactionDetails(transactionId) {
+            // TODO: Implement transaction details modal or page
+            showToast('Transaction details feature coming soon', 'info');
+        }
+
+        function showToast(message, type = 'info') {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 ${
+                type === 'error' ? 'bg-red-500' : 
+                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('datePickerBtn').addEventListener('click', () => {
+            document.getElementById('calendarModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeCalendar').addEventListener('click', () => {
+            document.getElementById('calendarModal').classList.add('hidden');
+        });
+
+        // Mode switching
+        document.getElementById('singleDateMode').addEventListener('click', () => {
+            isRangeMode = false;
+            startDate = null;
+            endDate = null;
+            document.getElementById('singleDateMode').className = 'px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-slate-800 shadow-sm';
+            document.getElementById('rangeDateMode').className = 'px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:text-slate-800';
+            updateSelectedDateText();
+            renderCalendar();
+        });
+
+        document.getElementById('rangeDateMode').addEventListener('click', () => {
+            isRangeMode = true;
+            selectedDate = new Date();
+            document.getElementById('rangeDateMode').className = 'px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-slate-800 shadow-sm';
+            document.getElementById('singleDateMode').className = 'px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:text-slate-800';
+            updateSelectedDateText();
+            renderCalendar();
+        });
+
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (isRangeMode) {
+                startDate = null;
+                endDate = null;
+            } else {
+                selectedDate = new Date(); // Reset to today
+            }
+            updateSelectedDateText();
+            renderCalendar();
+            
+            // Show feedback
+            showToast('Selection cleared', 'info');
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            const today = new Date();
+            if (isRangeMode) {
+                startDate = new Date(today);
+                endDate = null;
+            } else {
+                selectedDate = new Date(today);
+            }
+            currentMonth = today.getMonth();
+            currentYear = today.getFullYear();
+            updateSelectedDateText();
+            renderCalendar();
+        });
+
+        document.getElementById('selectDateBtn').addEventListener('click', () => {
+            document.getElementById('calendarModal').classList.add('hidden');
+            loadTransactions();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('calendarModal').addEventListener('click', (e) => {
+            if (e.target.id === 'calendarModal') {
+                document.getElementById('calendarModal').classList.add('hidden');
+            }
+        });
+
+        // Fade in animation
+        document.body.classList.add('fade-in');
+        setTimeout(() => {
+            document.body.style.opacity = '1';
+        }, 100);
+    </script>
+</body>
+</html>

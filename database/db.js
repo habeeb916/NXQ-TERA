@@ -69,10 +69,39 @@ class Database {
         )
       `;
 
+      const createWinnersTable = `
+        CREATE TABLE IF NOT EXISTS winners (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL,
+          month_year TEXT NOT NULL,
+          gold_rate DECIMAL(10,2) NOT NULL,
+          winning_amount DECIMAL(10,2) NOT NULL,
+          position INTEGER NOT NULL,
+          is_delivered BOOLEAN DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
+          UNIQUE(customer_id, month_year)
+        )
+      `;
+
+      const createDeliveriesTable = `
+        CREATE TABLE IF NOT EXISTS deliveries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          winner_id INTEGER NOT NULL,
+          bill_number TEXT NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          delivery_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+          notes TEXT,
+          FOREIGN KEY (winner_id) REFERENCES winners (id) ON DELETE CASCADE
+        )
+      `;
+
       this.db.serialize(() => {
         this.db.run(createUsersTable);
         this.db.run(createCustomersTable);
-        this.db.run(createPaymentsTable, (err) => {
+        this.db.run(createPaymentsTable);
+        this.db.run(createWinnersTable);
+        this.db.run(createDeliveriesTable, (err) => {
           if (err) {
             console.error('Error creating tables:', err.message);
             reject(err);
@@ -629,6 +658,67 @@ class Database {
     });
   }
 
+  // Get payments by date
+  async getPaymentsByDate(paymentDate) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting payments for date:', paymentDate);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for payments by date');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        `SELECT p.*, c.name as customer_name, c.customer_code 
+         FROM payments p 
+         JOIN customers c ON p.customer_id = c.id 
+         WHERE DATE(p.payment_date) = DATE(?) 
+         ORDER BY p.payment_date DESC`,
+        [paymentDate],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting payments by date:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found payments for date:', rows.length);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
+  async getPaymentsByDateRange(startDate, endDate) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting payments for date range:', startDate, 'to', endDate);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for payments by date range');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        `SELECT p.*, c.name as customer_name, c.customer_code 
+         FROM payments p 
+         JOIN customers c ON p.customer_id = c.id 
+         WHERE DATE(p.payment_date) >= DATE(?) AND DATE(p.payment_date) <= DATE(?) 
+         ORDER BY p.payment_date DESC`,
+        [startDate, endDate],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting payments by date range:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found payments for date range:', rows.length);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
   // Get dashboard statistics
   async getDashboardStats() {
     return new Promise((resolve, reject) => {
@@ -728,31 +818,257 @@ class Database {
               }
               console.log('Database: Customers deleted');
 
-              // Reset auto-increment counters
-              this.db.run('DELETE FROM sqlite_sequence WHERE name IN ("customers", "payments")', (err) => {
+              // Delete all deliveries
+              this.db.run('DELETE FROM deliveries', (err) => {
                 if (err) {
-                  console.error('Database: Error resetting sequences:', err.message);
+                  console.error('Database: Error deleting deliveries:', err.message);
                   this.db.run('ROLLBACK');
                   reject(err);
                   return;
                 }
-                console.log('Database: Auto-increment counters reset');
+                console.log('Database: Deliveries deleted');
 
-                // Commit transaction
-                this.db.run('COMMIT', (err) => {
+                // Delete all winners
+                this.db.run('DELETE FROM winners', (err) => {
                   if (err) {
-                    console.error('Database: Error committing transaction:', err.message);
+                    console.error('Database: Error deleting winners:', err.message);
+                    this.db.run('ROLLBACK');
                     reject(err);
                     return;
                   }
-                  console.log('Database: All data cleared successfully');
-                  resolve();
+                  console.log('Database: Winners deleted');
+
+                  // Reset auto-increment counters
+                  this.db.run('DELETE FROM sqlite_sequence WHERE name IN ("customers", "payments", "winners", "deliveries")', (err) => {
+                    if (err) {
+                      console.error('Database: Error resetting sequences:', err.message);
+                      this.db.run('ROLLBACK');
+                      reject(err);
+                      return;
+                    }
+                    console.log('Database: Auto-increment counters reset');
+
+                    // Commit transaction
+                    this.db.run('COMMIT', (err) => {
+                      if (err) {
+                        console.error('Database: Error committing transaction:', err.message);
+                        reject(err);
+                        return;
+                      }
+                      console.log('Database: All data cleared successfully');
+                      resolve();
+                    });
+                  });
                 });
               });
             });
           });
         });
       });
+    });
+  }
+
+  // Winners methods
+  async addWinner(customerId, monthYear, goldRate, winningAmount, position) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Adding winner:', { customerId, monthYear, goldRate, winningAmount, position });
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for adding winner');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.run(
+        'INSERT INTO winners (customer_id, month_year, gold_rate, winning_amount, position) VALUES (?, ?, ?, ?, ?)',
+        [customerId, monthYear, goldRate, winningAmount, position],
+        function(err) {
+          if (err) {
+            console.error('Database: Error adding winner:', err);
+            reject(err);
+          } else {
+            console.log('Database: Winner added successfully with ID:', this.lastID);
+            resolve({ id: this.lastID, ...arguments[1] });
+          }
+        }
+      );
+    });
+  }
+
+  async getAllWinners() {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting all winners');
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting winners');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        `SELECT w.*, c.name as customer_name, c.customer_code,
+         COALESCE(SUM(d.amount), 0) as delivered_amount,
+         (w.winning_amount - COALESCE(SUM(d.amount), 0)) as remaining_balance
+         FROM winners w
+         JOIN customers c ON w.customer_id = c.id
+         LEFT JOIN deliveries d ON w.id = d.winner_id
+         GROUP BY w.id
+         ORDER BY w.created_at DESC`,
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting winners:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found winners:', rows.length);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
+  async getAvailableMonths() {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting available months');
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting available months');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      // Generate 30 months from default start date
+      const months = [];
+      const startDate = new Date('2024-12-15');
+      
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(startDate);
+        date.setMonth(date.getMonth() + i);
+        const monthYear = date.toISOString().slice(0, 7);
+        months.push(monthYear);
+      }
+      
+      // Get months that already have winners
+      this.db.all(
+        'SELECT DISTINCT month_year FROM winners',
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting winner months:', err);
+            reject(err);
+          } else {
+            const winnerMonths = rows.map(row => row.month_year);
+            const availableMonths = months.filter(month => !winnerMonths.includes(month));
+            console.log('Database: Available months:', availableMonths.length);
+            resolve(availableMonths);
+          }
+        }
+      );
+    });
+  }
+
+  // Delivery methods
+  async addDelivery(winnerId, billNumber, amount, notes = null) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Adding delivery:', { winnerId, billNumber, amount, notes });
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for adding delivery');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+
+      // Store database reference to avoid context issues
+      const db = this.db;
+
+      // First, get the winner's winning amount and current delivered amount
+      db.get(
+        `SELECT w.winning_amount, COALESCE(SUM(d.amount), 0) as delivered_amount
+         FROM winners w
+         LEFT JOIN deliveries d ON w.id = d.winner_id
+         WHERE w.id = ?
+         GROUP BY w.id, w.winning_amount`,
+        [winnerId],
+        (err, result) => {
+          if (err) {
+            console.error('Database: Error getting winner details:', err);
+            reject(err);
+            return;
+          }
+
+          if (!result) {
+            reject(new Error('Winner not found'));
+            return;
+          }
+
+          const { winning_amount, delivered_amount } = result;
+          const newTotal = delivered_amount + amount;
+
+          console.log(`Database: Winner ${winnerId} - Winning: ${winning_amount}, Delivered: ${delivered_amount}, New delivery: ${amount}, New total: ${newTotal}`);
+
+          // Check if the new delivery would exceed the winning amount
+          if (newTotal > winning_amount) {
+            const remaining = winning_amount - delivered_amount;
+            reject(new Error(`Delivery amount (₹${amount}) exceeds remaining balance. Maximum allowed: ₹${remaining}`));
+            return;
+          }
+          
+          // Proceed with adding the delivery
+          db.run(
+            'INSERT INTO deliveries (winner_id, bill_number, amount, notes) VALUES (?, ?, ?, ?)',
+            [winnerId, billNumber, amount, notes],
+            function(err) {
+              if (err) {
+                console.error('Database: Error adding delivery:', err);
+                reject(err);
+              } else {
+                console.log('Database: Delivery added successfully with ID:', this.lastID);
+                
+                // Update winner delivery status if fully delivered
+                db.run(
+                  `UPDATE winners SET is_delivered = 1 
+                   WHERE id = ? AND winning_amount <= (
+                     SELECT COALESCE(SUM(amount), 0) FROM deliveries WHERE winner_id = ?
+                   )`,
+                  [winnerId, winnerId],
+                  (updateErr) => {
+                    if (updateErr) {
+                      console.error('Database: Error updating winner delivery status:', updateErr);
+                    }
+                  }
+                );
+                
+                resolve({ id: this.lastID, ...arguments[1] });
+              }
+            }
+          );
+        }
+      );
+    });
+  }
+
+  async getDeliveriesByWinner(winnerId) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting deliveries for winner:', winnerId);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting deliveries');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        'SELECT * FROM deliveries WHERE winner_id = ? ORDER BY delivery_date DESC',
+        [winnerId],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting deliveries:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found deliveries:', rows.length);
+            resolve(rows);
+          }
+        }
+      );
     });
   }
 }

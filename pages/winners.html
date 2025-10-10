@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winners - NXQ Chit Fund</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { 
+      theme: { 
+        extend: { 
+          colors: { 
+            brand: { 
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b' 
+            }, 
+            success: '#10b981', 
+            danger: '#dc2626', 
+            warning: '#f59e0b' 
+          }, 
+          boxShadow: { 
+            card: '0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15)' 
+          } 
+        } 
+      } 
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  <script src="../components/navbar.js"></script>
+  <style>
+        :root {
+            --brand-50: #f0fdf4;
+            --brand-100: #dcfce7;
+            --brand-200: #bbf7d0;
+            --brand-300: #86efac;
+            --brand-400: #4ade80;
+            --brand-500: #22c55e;
+            --brand-600: #16a34a;
+            --brand-700: #15803d;
+            --brand-800: #166534;
+            --brand-900: #14532d;
+            --brand-950: #052e16;
+        }
+        
+        html, body { 
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; 
+        }
+        
+        .shadow-card {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        .shadow-brand-500\/25 {
+            box-shadow: 0 10px 15px -3px rgba(34, 197, 94, 0.25), 0 4px 6px -2px rgba(34, 197, 94, 0.1);
+        }
+        
+        .bg-gradient-premium {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+        }
+        
+        .text-premium {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .border-premium {
+            border: 2px solid transparent;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(135deg, #ffd700, #ffed4e) border-box;
+        }
+        
+        .winner-crown {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .premium-glow {
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        /* Ensure consistent green theme */
+        .bg-slate-50 {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white transition-opacity duration-300 opacity-0">
+    <!-- Navbar Container -->
+    <div id="navbar-container"></div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 fade-in">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="winner-crown p-2 rounded-xl">
+                    <svg class="w-8 h-8 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-800">Winners</h1>
+            </div>
+            <p class="text-slate-600">Manage chit fund winners and their deliveries</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Total Winners -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card hover:shadow-brand-500/25 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Winners</p>
+                        <p class="text-2xl font-bold text-slate-800" id="totalWinners">0</p>
+                    </div>
+                    <div class="winner-crown p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Winning Amount -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card hover:shadow-brand-500/25 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Winning Amount</p>
+                        <p class="text-2xl font-bold text-slate-800" id="totalWinningAmount">₹0</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Deliveries -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card hover:shadow-brand-500/25 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Pending Deliveries</p>
+                        <p class="text-2xl font-bold text-slate-800" id="pendingDeliveries">0</p>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Deliveries -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card hover:shadow-brand-500/25 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Completed Deliveries</p>
+                        <p class="text-2xl font-bold text-slate-800" id="completedDeliveries">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-xl">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Winners Table -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-card overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-800">Winners List</h2>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <input type="text" id="searchWinners" placeholder="Search winners..." 
+                                   class="w-64 px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Winner</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Month/Year</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Gold Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Winning Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Delivered</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Balance</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="winnersTableBody" class="bg-white divide-y divide-slate-200">
+                        <!-- Winners will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyWinnersState" class="text-center py-12 hidden">
+                <div class="winner-crown p-4 rounded-full w-16 h-16 mx-auto mb-4">
+                    <svg class="w-8 h-8 text-yellow-600 mx-auto" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-slate-800 mb-2">No winners yet</h3>
+                <p class="text-slate-600">Winners will appear here once they are marked from the customer page.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Deliveries Modal -->
+    <div id="deliveriesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div class="p-6 border-b border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-slate-800">Delivery History</h3>
+                        <button type="button" id="closeDeliveriesModal" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    <div id="deliveriesContent">
+                        <!-- Deliveries will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Modal -->
+    <div id="deliveryModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-800">Add Delivery</h3>
+                        <button type="button" id="closeDeliveryModal" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <form id="deliveryForm" class="space-y-4">
+                        <input type="hidden" id="winnerId" name="winnerId">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Bill Number</label>
+                            <input type="text" id="billNumber" name="billNumber" required
+                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Delivery Amount</label>
+                            <input type="number" id="deliveryAmount" name="deliveryAmount" required min="1"
+                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Remaining Balance</label>
+                            <input type="text" id="remainingBalance" readonly
+                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-600">
+                        </div>
+                        
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" id="cancelDelivery" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium">
+                                Cancel
+                            </button>
+                            <button type="submit" class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium">
+                                Add Delivery
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        let winnersData = [];
+        let currentWinner = null;
+
+        // Load winners on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWinners();
+            setupEventListeners();
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Deliveries modal
+            document.getElementById('closeDeliveriesModal').addEventListener('click', () => {
+                document.getElementById('deliveriesModal').classList.add('hidden');
+            });
+
+            // Close deliveries modal when clicking outside
+            document.getElementById('deliveriesModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('deliveriesModal')) {
+                    document.getElementById('deliveriesModal').classList.add('hidden');
+                }
+            });
+
+            // Delivery modal
+            document.getElementById('closeDeliveryModal').addEventListener('click', () => {
+                document.getElementById('deliveryModal').classList.add('hidden');
+            });
+
+            document.getElementById('cancelDelivery').addEventListener('click', () => {
+                document.getElementById('deliveryModal').classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('deliveryModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('deliveryModal')) {
+                    document.getElementById('deliveryModal').classList.add('hidden');
+                }
+            });
+
+            // Delivery form submission
+            document.getElementById('deliveryForm').addEventListener('submit', handleDeliverySubmit);
+
+            // Delivery amount input for remaining balance calculation
+            document.getElementById('deliveryAmount').addEventListener('input', updateRemainingBalance);
+
+            // Search functionality
+            document.getElementById('searchWinners').addEventListener('input', handleSearch);
+
+            // Fade in animation
+            document.body.classList.add('fade-in');
+            
+            // Add opacity transition
+            setTimeout(() => {
+                document.body.classList.remove('opacity-0');
+            }, 100);
+        }
+
+        // Load winners function
+        async function loadWinners() {
+            try {
+                const result = await window.electronAPI.winners.getAll();
+                if (result.success) {
+                    winnersData = result.winners || [];
+                    displayWinners(winnersData);
+                    updateSummaryCards(winnersData);
+                } else {
+                    console.error('Error loading winners:', result.error);
+                    showToast('Error loading winners: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading winners:', error);
+                showToast('Error loading winners', 'error');
+                showEmptyState();
+                updateSummaryCards([]);
+            }
+        }
+
+        // Display winners in table
+        function displayWinners(winners) {
+            const tbody = document.getElementById('winnersTableBody');
+            const emptyState = document.getElementById('emptyWinnersState');
+
+            if (winners.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = winners.map(winner => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="winner-crown p-2 rounded-lg mr-3">
+                                <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-slate-900">${winner.customer_name}</div>
+                                <div class="text-sm text-slate-500">${winner.customer_code}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ${formatMonthYear(winner.month_year)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                        ₹${winner.gold_rate}/gram
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                        ₹${winner.winning_amount.toLocaleString('en-IN')}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                        ₹${winner.delivered_amount.toLocaleString('en-IN')}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${getBalanceDisplay(winner)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${getActionButtons(winner)}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Add event listeners for action buttons
+            winners.forEach(winner => {
+                const addDeliveryBtn = document.getElementById(`addDeliveryBtn_${winner.id}`);
+                if (addDeliveryBtn) {
+                    addDeliveryBtn.addEventListener('click', () => openDeliveryModal(winner));
+                }
+                
+                const viewDeliveriesBtn = document.getElementById(`viewDeliveriesBtn_${winner.id}`);
+                if (viewDeliveriesBtn) {
+                    viewDeliveriesBtn.addEventListener('click', () => openDeliveriesModal(winner));
+                }
+            });
+        }
+
+        // Format month/year display
+        function formatMonthYear(monthYear) {
+            const [year, monthNum] = monthYear.split('-');
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthIndex = parseInt(monthNum) - 1;
+            const monthName = monthNames[monthIndex];
+            return `${monthName} ${year}`;
+        }
+
+        // Get balance display
+        function getBalanceDisplay(winner) {
+            const balance = winner.winning_amount - winner.delivered_amount;
+            if (balance <= 0) {
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Fully Delivered</span>';
+            } else {
+                return `<span class="text-sm font-medium text-orange-600">₹${balance.toLocaleString('en-IN')}</span>`;
+            }
+        }
+
+        // Get action buttons
+        function getActionButtons(winner) {
+            const balance = winner.winning_amount - winner.delivered_amount;
+            let buttons = '';
+            
+            if (balance > 0) {
+                buttons += `<button id="addDeliveryBtn_${winner.id}" class="text-brand-600 hover:text-brand-900 font-medium mr-3">Add Delivery</button>`;
+            }
+            
+            buttons += `<button id="viewDeliveriesBtn_${winner.id}" class="text-blue-600 hover:text-blue-900 font-medium">View Deliveries</button>`;
+            
+            return buttons;
+        }
+
+        // Update summary cards
+        function updateSummaryCards(winners) {
+            const totalWinners = winners.length;
+            const totalWinningAmount = winners.reduce((sum, winner) => sum + winner.winning_amount, 0);
+            const pendingDeliveries = winners.filter(winner => {
+                const balance = winner.winning_amount - winner.delivered_amount;
+                return balance > 0;
+            }).length;
+            const completedDeliveries = totalWinners - pendingDeliveries;
+
+            document.getElementById('totalWinners').textContent = totalWinners;
+            document.getElementById('totalWinningAmount').textContent = `₹${totalWinningAmount.toLocaleString('en-IN')}`;
+            document.getElementById('pendingDeliveries').textContent = pendingDeliveries;
+            document.getElementById('completedDeliveries').textContent = completedDeliveries;
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            document.getElementById('winnersTableBody').innerHTML = '';
+            document.getElementById('emptyWinnersState').classList.remove('hidden');
+        }
+
+        // Open delivery modal
+        function openDeliveryModal(winner) {
+            currentWinner = winner;
+            const balance = winner.winning_amount - winner.delivered_amount;
+            
+            document.getElementById('winnerId').value = winner.id;
+            document.getElementById('billNumber').value = '';
+            document.getElementById('deliveryAmount').value = '';
+            document.getElementById('remainingBalance').value = `₹${balance.toLocaleString('en-IN')}`;
+            
+            document.getElementById('deliveryModal').classList.remove('hidden');
+            document.getElementById('deliveryAmount').focus();
+        }
+
+        // Update remaining balance in modal
+        function updateRemainingBalance() {
+            if (!currentWinner) return;
+            
+            const deliveryAmount = parseFloat(document.getElementById('deliveryAmount').value) || 0;
+            const currentBalance = currentWinner.winning_amount - currentWinner.delivered_amount;
+            const newBalance = currentBalance - deliveryAmount;
+            
+            const remainingBalanceInput = document.getElementById('remainingBalance');
+            if (newBalance >= 0) {
+                remainingBalanceInput.value = `₹${newBalance.toLocaleString('en-IN')}`;
+                remainingBalanceInput.classList.remove('text-red-600');
+                remainingBalanceInput.classList.add('text-slate-600');
+            } else {
+                remainingBalanceInput.value = `Exceeds by ₹${Math.abs(newBalance).toLocaleString('en-IN')}`;
+                remainingBalanceInput.classList.remove('text-slate-600');
+                remainingBalanceInput.classList.add('text-red-600');
+            }
+        }
+
+        // Handle delivery form submission
+        async function handleDeliverySubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const winnerId = formData.get('winnerId');
+            const billNumber = formData.get('billNumber');
+            const amount = parseFloat(formData.get('deliveryAmount'));
+
+            // Validate amount
+            if (!amount || amount <= 0) {
+                showToast('Please enter a valid delivery amount', 'error');
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.deliveries.add({
+                    winnerId: winnerId,
+                    billNumber: billNumber,
+                    amount: amount,
+                    notes: ''
+                });
+
+                if (result.success) {
+                    document.getElementById('deliveryModal').classList.add('hidden');
+                    await loadWinners(); // Reload winners data
+                    showToast('Delivery added successfully!', 'success');
+                } else {
+                    showToast('Error adding delivery: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error adding delivery:', error);
+                showToast('Error adding delivery: ' + error.message, 'error');
+            }
+        }
+
+        // Handle search
+        function handleSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredWinners = winnersData.filter(winner => 
+                winner.customer_name.toLowerCase().includes(searchTerm) ||
+                winner.customer_code.toLowerCase().includes(searchTerm) ||
+                winner.month_year.toLowerCase().includes(searchTerm)
+            );
+            displayWinners(filteredWinners);
+        }
+
+        // Open deliveries modal
+        async function openDeliveriesModal(winner) {
+            try {
+                // Update modal title
+                const modalTitle = document.querySelector('#deliveriesModal h3');
+                modalTitle.textContent = `Delivery History - ${winner.customer_name}`;
+
+                // Load deliveries for this winner
+                const result = await window.electronAPI.deliveries.getByWinner(winner.id);
+                const deliveriesContent = document.getElementById('deliveriesContent');
+
+                if (result.success && result.deliveries && result.deliveries.length > 0) {
+                    const deliveries = result.deliveries;
+                    
+                    // Create delivery summary
+                    const totalDelivered = deliveries.reduce((sum, delivery) => sum + delivery.amount, 0);
+                    const remainingBalance = winner.winning_amount - totalDelivered;
+                    
+                    deliveriesContent.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-sm text-blue-700">Total Winning Amount</p>
+                                <p class="text-xl font-bold text-blue-800">₹${winner.winning_amount.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <p class="text-sm text-green-700">Total Delivered</p>
+                                <p class="text-xl font-bold text-green-800">₹${totalDelivered.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div class="bg-orange-50 rounded-lg p-4">
+                                <p class="text-sm text-orange-700">Remaining Balance</p>
+                                <p class="text-xl font-bold text-orange-800">₹${remainingBalance.toLocaleString('en-IN')}</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <div class="px-6 py-3 bg-slate-50 border-b border-slate-200">
+                                <h4 class="text-sm font-medium text-slate-700">Delivery Records</h4>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Bill Number</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-slate-200">
+                                        ${deliveries.map(delivery => `
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                                    ${new Date(delivery.delivery_date).toLocaleDateString('en-IN', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                                    ${delivery.bill_number}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                                    ₹${delivery.amount.toLocaleString('en-IN')}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    ${delivery.notes || '-'}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    deliveriesContent.innerHTML = `
+                        <div class="text-center py-12">
+                            <div class="bg-slate-100 p-4 rounded-full w-16 h-16 mx-auto mb-4">
+                                <svg class="w-8 h-8 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-slate-800 mb-2">No deliveries yet</h3>
+                            <p class="text-slate-600">No delivery records found for this winner.</p>
+                        </div>
+                    `;
+                }
+
+                // Show modal
+                document.getElementById('deliveriesModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading deliveries:', error);
+                showToast('Error loading delivery history', 'error');
+            }
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full`;
+            
+            // Set color based on type
+            switch (type) {
+                case 'success':
+                    toast.classList.add('bg-green-500');
+                    break;
+                case 'error':
+                    toast.classList.add('bg-red-500');
+                    break;
+                default:
+                    toast.classList.add('bg-blue-500');
+            }
+            
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

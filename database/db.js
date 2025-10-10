@@ -349,9 +349,9 @@ class Database {
 
         // Validate customer code format if provided
         if (customer_code) {
-          const codeMatch = customer_code.match(/^GD7- (\d+)$/);
+          const codeMatch = customer_code.match(/^GD7-(\d+)$/);
           if (!codeMatch) {
-            throw new Error('Customer code must be in format GD7- XXX');
+            throw new Error('Customer code must be in format GD7-XXX');
           }
           const codeNumber = parseInt(codeMatch[1]);
           if (codeNumber < 1 || codeNumber > 2000) {
@@ -687,6 +687,73 @@ class Database {
         }
       });
     }
+  }
+
+  // Clear all data from database (except admin user)
+  async clearAllData() {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Clearing all data...');
+      
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
+
+      // Start transaction
+      this.db.serialize(() => {
+        this.db.run('BEGIN TRANSACTION', (err) => {
+          if (err) {
+            console.error('Database: Error starting transaction:', err.message);
+            reject(err);
+            return;
+          }
+
+          // Delete all payments
+          this.db.run('DELETE FROM payments', (err) => {
+            if (err) {
+              console.error('Database: Error deleting payments:', err.message);
+              this.db.run('ROLLBACK');
+              reject(err);
+              return;
+            }
+            console.log('Database: Payments deleted');
+
+            // Delete all customers
+            this.db.run('DELETE FROM customers', (err) => {
+              if (err) {
+                console.error('Database: Error deleting customers:', err.message);
+                this.db.run('ROLLBACK');
+                reject(err);
+                return;
+              }
+              console.log('Database: Customers deleted');
+
+              // Reset auto-increment counters
+              this.db.run('DELETE FROM sqlite_sequence WHERE name IN ("customers", "payments")', (err) => {
+                if (err) {
+                  console.error('Database: Error resetting sequences:', err.message);
+                  this.db.run('ROLLBACK');
+                  reject(err);
+                  return;
+                }
+                console.log('Database: Auto-increment counters reset');
+
+                // Commit transaction
+                this.db.run('COMMIT', (err) => {
+                  if (err) {
+                    console.error('Database: Error committing transaction:', err.message);
+                    reject(err);
+                    return;
+                  }
+                  console.log('Database: All data cleared successfully');
+                  resolve();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
   }
 }
 

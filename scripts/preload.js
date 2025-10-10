@@ -21,7 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAll: () => ipcRenderer.invoke('customer-get-all'),
     getById: (id) => ipcRenderer.invoke('customer-get-by-id', id),
     checkCode: (code) => ipcRenderer.invoke('customer-check-code', code),
-    getPayments: (customerId) => ipcRenderer.invoke('customer-get-payments', customerId)
+    getPayments: (customerId) => ipcRenderer.invoke('customer-get-payments', customerId),
+    getNextCode: () => ipcRenderer.invoke('get-next-customer-code'),
+    validateCode: (code) => ipcRenderer.invoke('validate-customer-code', code)
   },
 
   // Payment management
@@ -39,5 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Navigation
   navigation: {
     navigateTo: (path) => ipcRenderer.invoke('navigate-to', path)
-  }
+  },
+
+  // Database management
+  clearDatabase: () => ipcRenderer.invoke('clear-database')
 });

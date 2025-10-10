@@ -341,8 +341,13 @@
 
     // Generate month options
     async function generateMonthOptions() {
+      console.log('Dashboard: generateMonthOptions called');
       const monthSelector = document.getElementById('monthSelector');
-      if (!monthSelector) return;
+      if (!monthSelector) {
+        console.log('Dashboard: monthSelector element not found!');
+        return;
+      }
+      console.log('Dashboard: monthSelector element found');
       
       // Clear existing options
       monthSelector.innerHTML = '<option value="">Select Month</option>';
@@ -353,6 +358,8 @@
       const currentYear = now.getFullYear();
       const currentMonthYear = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
       
+      console.log('Dashboard: Default start date:', defaultStartDate);
+      console.log('Dashboard: Start date object:', startDate);
       console.log('Dashboard: Current date:', now);
       console.log('Dashboard: Current month year:', currentMonthYear);
       
@@ -360,11 +367,14 @@
       let monthDate = new Date(startDate);
       let monthNumber = 1;
       let currentMonthOption = null;
+      let optionsGenerated = 0;
       
       // Create end date for the current month (last day of current month)
       const endDate = new Date(currentYear, currentMonth + 1, 0);
       
-      while (monthDate <= endDate) {
+      console.log('Dashboard: End date (last day of current month):', endDate);
+      
+      while (monthDate <= endDate && optionsGenerated < 30) {
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const monthYear = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
         const displayText = `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()} (${monthNumber})`;
@@ -374,7 +384,7 @@
         option.textContent = displayText;
         monthSelector.appendChild(option);
         
-        console.log('Dashboard: Generated option:', monthYear, displayText);
+        console.log('Dashboard: Generated option:', monthYear, displayText, 'Month date:', monthDate);
         
         // Track the current month option
         if (monthYear === currentMonthYear) {
@@ -385,6 +395,7 @@
         // Move to next month
         monthDate.setMonth(monthDate.getMonth() + 1);
         monthNumber++;
+        optionsGenerated++;
       }
       
       // Set current month as default selection
@@ -400,7 +411,11 @@
         console.log('Dashboard: Default month set to last available month:', lastOption.value);
       }
       
-      console.log('Dashboard: Generated', monthNumber - 1, 'month options');
+      console.log('Dashboard: Generated', optionsGenerated, 'month options');
+      console.log('Dashboard: Total options in selector:', monthSelector.options.length);
+      
+      // Setup event listener for month selector
+      setupMonthSelectorListener();
     }
 
     // Update dashboard cards
@@ -558,11 +573,16 @@
     }
 
     // Month selector change handler
-    document.getElementById('monthSelector').addEventListener('change', function() {
-      selectedMonthYear = this.value;
-      console.log('Dashboard: Month changed to:', selectedMonthYear);
-      updateDashboardCards();
-    });
+    function setupMonthSelectorListener() {
+      const monthSelector = document.getElementById('monthSelector');
+      if (monthSelector) {
+        monthSelector.addEventListener('change', function() {
+          selectedMonthYear = this.value;
+          console.log('Dashboard: Month changed to:', selectedMonthYear);
+          updateDashboardCards();
+        });
+      }
+    }
 
     // Smooth navigation
     (function() {

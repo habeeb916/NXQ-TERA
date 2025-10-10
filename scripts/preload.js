@@ -33,6 +33,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAll: () => ipcRenderer.invoke('payment-get-all')
   },
 
+        // Transactions
+        getTransactionsByDate: (paymentDate) => ipcRenderer.invoke('transactions-get-by-date', paymentDate),
+        getTransactionsByDateRange: (startDate, endDate) => ipcRenderer.invoke('transactions-get-by-date-range', startDate, endDate),
+
+  // Winners
+  winners: {
+    add: (winnerData) => ipcRenderer.invoke('winners-add', winnerData),
+    getAll: () => ipcRenderer.invoke('winners-get-all'),
+    getAvailableMonths: () => ipcRenderer.invoke('winners-get-available-months')
+  },
+
+  // Deliveries
+  deliveries: {
+    add: (deliveryData) => ipcRenderer.invoke('delivery-add', deliveryData),
+    getByWinner: (winnerId) => ipcRenderer.invoke('delivery-get-by-winner', winnerId)
+  },
+
   // Dashboard
   dashboard: {
     getStats: () => ipcRenderer.invoke('dashboard-stats')

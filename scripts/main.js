@@ -95,7 +95,7 @@ app.on('web-contents-created', (event, contents) => {
     
     // Allow navigation to our local HTML files
     if (parsedUrl.protocol === 'file:') {
-      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html', 'pages/settings.html'];
+      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html', 'pages/settings.html', 'pages/transactions.html', 'pages/winners.html'];
       const filePath = parsedUrl.pathname;
       
       if (allowedFiles.some(file => filePath.endsWith(file))) {
@@ -435,6 +435,175 @@ ipcMain.handle('payment-get-all', async (event) => {
     };
   } catch (error) {
     console.error('IPC: Get all payments error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('transactions-get-by-date', async (event, paymentDate) => {
+  console.log('IPC: transactions-get-by-date handler called for date:', paymentDate);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for transactions by date');
+      throw new Error('Database service not initialized');
+    }
+
+    console.log('IPC: Getting transactions for date:', paymentDate);
+    const transactions = await authService.db.getPaymentsByDate(paymentDate);
+    console.log('IPC: Transactions found:', transactions.length);
+
+    return {
+      success: true,
+      transactions: transactions
+    };
+  } catch (error) {
+    console.error('IPC: Get transactions by date error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('transactions-get-by-date-range', async (event, startDate, endDate) => {
+  console.log('IPC: transactions-get-by-date-range handler called for range:', startDate, 'to', endDate);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for transactions by date range');
+      throw new Error('Database service not initialized');
+    }
+
+    console.log('IPC: Getting transactions for date range:', startDate, 'to', endDate);
+    const transactions = await authService.db.getPaymentsByDateRange(startDate, endDate);
+    console.log('IPC: Transactions found for range:', transactions.length);
+
+    return {
+      success: true,
+      transactions: transactions
+    };
+  } catch (error) {
+    console.error('IPC: Get transactions by date range error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Winners IPC handlers
+ipcMain.handle('winners-add', async (event, winnerData) => {
+  console.log('IPC: winners-add handler called:', winnerData);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for adding winner');
+      throw new Error('Database service not initialized');
+    }
+
+    const { customerId, monthYear, goldRate, winningAmount, position } = winnerData;
+    const winner = await authService.db.addWinner(customerId, monthYear, goldRate, winningAmount, position);
+    
+    return {
+      success: true,
+      winner: winner
+    };
+  } catch (error) {
+    console.error('IPC: Add winner error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('winners-get-all', async (event) => {
+  console.log('IPC: winners-get-all handler called');
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for getting winners');
+      throw new Error('Database service not initialized');
+    }
+
+    const winners = await authService.db.getAllWinners();
+    
+    return {
+      success: true,
+      winners: winners
+    };
+  } catch (error) {
+    console.error('IPC: Get winners error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('winners-get-available-months', async (event) => {
+  console.log('IPC: winners-get-available-months handler called');
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for getting available months');
+      throw new Error('Database service not initialized');
+    }
+
+    const availableMonths = await authService.db.getAvailableMonths();
+    
+    return {
+      success: true,
+      availableMonths: availableMonths
+    };
+  } catch (error) {
+    console.error('IPC: Get available months error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Delivery IPC handlers
+ipcMain.handle('delivery-add', async (event, deliveryData) => {
+  console.log('IPC: delivery-add handler called:', deliveryData);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for adding delivery');
+      throw new Error('Database service not initialized');
+    }
+
+    const { winnerId, billNumber, amount, notes } = deliveryData;
+    const delivery = await authService.db.addDelivery(winnerId, billNumber, amount, notes);
+    
+    return {
+      success: true,
+      delivery: delivery
+    };
+  } catch (error) {
+    console.error('IPC: Add delivery error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('delivery-get-by-winner', async (event, winnerId) => {
+  console.log('IPC: delivery-get-by-winner handler called for winner:', winnerId);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for getting deliveries');
+      throw new Error('Database service not initialized');
+    }
+
+    const deliveries = await authService.db.getDeliveriesByWinner(winnerId);
+    
+    return {
+      success: true,
+      deliveries: deliveries
+    };
+  } catch (error) {
+    console.error('IPC: Get deliveries error:', error.message);
     return {
       success: false,
       error: error.message

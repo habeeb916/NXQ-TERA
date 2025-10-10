@@ -277,7 +277,16 @@
     async function loadDefaultStartDate() {
       try {
         if (window.electronAPI && window.electronAPI.getDefaultStartDate) {
-          defaultStartDate = await window.electronAPI.getDefaultStartDate();
+          const result = await window.electronAPI.getDefaultStartDate();
+          console.log('Dashboard: Default start date result:', result);
+          
+          // Extract the actual date string from the result
+          if (result && typeof result === 'object' && result.startDate) {
+            defaultStartDate = result.startDate;
+          } else if (typeof result === 'string') {
+            defaultStartDate = result;
+          }
+          
           console.log('Dashboard: Default start date loaded:', defaultStartDate);
         }
       } catch (error) {

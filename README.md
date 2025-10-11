@@ -1,4 +1,4 @@
-# NXQ Electron App
+# HSM-TERA
 
 A modern Electron application with HTML rendering support, featuring a beautiful UI, secure architecture, and cross-platform compatibility.
 
@@ -22,7 +22,7 @@ A modern Electron application with HTML rendering support, featuring a beautiful
 1. Clone or download this project
 2. Navigate to the project directory:
    ```bash
-   cd NXQ
+   cd HSM-TERA
    ```
 
 3. Install dependencies:
@@ -60,12 +60,12 @@ This will create platform-specific installers in the `dist` folder.
 ## Project Structure
 
 ```
-NXQ/
-├── main.js              # Main Electron process
-├── preload.js           # Preload script for secure IPC
-├── index.html           # Main HTML file
-├── styles.css           # CSS styles with theme support
-├── renderer.js          # Renderer process JavaScript
+HSM-TERA/
+├── scripts/main.js      # Main Electron process
+├── scripts/preload.js   # Preload script for secure IPC
+├── pages/index.html     # Main HTML file
+├── components/          # UI components
+├── scripts/renderer.js  # Renderer process JavaScript
 ├── package.json         # Project configuration
 └── README.md           # This file
 ```

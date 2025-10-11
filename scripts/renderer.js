@@ -101,7 +101,7 @@ async function loadAppInfo() {
             document.getElementById('app-platform').textContent = platform;
         } else {
             // Fallback values when not running in Electron
-            document.getElementById('app-name').textContent = 'NXQ Electron App';
+            document.getElementById('app-name').textContent = 'HSM-TERA';
             document.getElementById('app-version').textContent = '1.0.0';
             document.getElementById('app-platform').textContent = 'Web Browser';
         }

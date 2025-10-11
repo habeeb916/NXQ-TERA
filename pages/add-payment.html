@@ -118,8 +118,18 @@
                     </div>
                     <div class="space-y-2">
                         <label for="paymentDate" class="block text-sm font-semibold text-slate-700">Payment Date *</label>
-                        <input type="date" id="paymentDate" name="paymentDate" required 
-                               class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                        <div class="relative">
+                            <button type="button" id="paymentDatePickerBtn" 
+                                    class="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-left">
+                                <span id="selectedPaymentDateText">Select Date</span>
+                            </button>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <input type="hidden" id="paymentDate" name="paymentDate" required>
                     </div>
                 </div>
 
@@ -206,6 +216,79 @@
         </form>
       </div>
 
+    <!-- Custom Calendar Modal -->
+    <div id="paymentCalendarModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-800">Select Payment Date</h3>
+                        <button type="button" id="closePaymentCalendar" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Selected Date Display -->
+                    <div id="selectedPaymentDateDisplay" class="mb-4 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-sm text-slate-600 mb-1">Selected:</div>
+                        <div id="selectedPaymentDateTextModal" class="text-sm font-medium text-slate-800">Select Date</div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-3">
+                        <button type="button" id="prevPaymentMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <h4 id="currentPaymentMonthYear" class="text-lg font-semibold text-slate-800">October 2025</h4>
+                        <button type="button" id="nextPaymentMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Sun</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Mon</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Tue</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Wed</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Thu</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Fri</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Sat</div>
+                    </div>
+                    
+                    <div id="paymentCalendarDays" class="grid grid-cols-7 gap-1">
+                        <!-- Calendar days will be generated here -->
+                    </div>
+                    
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" id="clearPaymentDateBtn" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium flex items-center gap-2 border border-red-200 hover:border-red-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear
+                        </button>
+                        <button type="button" id="todayPaymentBtn" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium flex items-center gap-2 border border-blue-200 hover:border-blue-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Today
+                        </button>
+                        <button type="button" id="selectPaymentDateBtn" class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-brand-500/25">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
 
@@ -224,6 +307,12 @@
   <script>
         let customerData = null;
         let paymentsData = [];
+        
+        // Calendar functionality for payment date
+        let paymentCurrentDate = new Date();
+        let selectedPaymentDate = new Date();
+        let paymentCurrentMonth = paymentCurrentDate.getMonth();
+        let paymentCurrentYear = paymentCurrentDate.getFullYear();
 
         // Check authentication
         async function checkAuthentication() {
@@ -414,6 +503,131 @@
             });
         }
 
+        // Calendar functions for payment date
+        function updateSelectedPaymentDateText() {
+            const dateText = selectedPaymentDate.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            document.getElementById('selectedPaymentDateText').textContent = dateText;
+            document.getElementById('selectedPaymentDateTextModal').textContent = dateText;
+        }
+
+        function renderPaymentCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('currentPaymentMonthYear').textContent = `${monthNames[paymentCurrentMonth]} ${paymentCurrentYear}`;
+            
+            const firstDay = new Date(paymentCurrentYear, paymentCurrentMonth, 1);
+            const lastDay = new Date(paymentCurrentYear, paymentCurrentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            const calendarDays = document.getElementById('paymentCalendarDays');
+            calendarDays.innerHTML = '';
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'h-10';
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('button');
+                dayElement.className = 'h-10 w-10 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100';
+                dayElement.textContent = day;
+                
+                const currentDayDate = new Date(paymentCurrentYear, paymentCurrentMonth, day);
+                const today = new Date();
+                const isToday = currentDayDate.toDateString() === today.toDateString();
+                const isSelected = currentDayDate.toDateString() === selectedPaymentDate.toDateString();
+                
+                // Apply styling
+                if (isToday) {
+                    dayElement.className += ' bg-brand-100 text-brand-600';
+                }
+                if (isSelected) {
+                    dayElement.className += ' bg-brand-600 text-white hover:bg-brand-700';
+                }
+                
+                dayElement.addEventListener('click', () => {
+                    selectedPaymentDate = new Date(paymentCurrentYear, paymentCurrentMonth, day);
+                    updateSelectedPaymentDateText();
+                    renderPaymentCalendar();
+                });
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        function setupPaymentCalendar() {
+            // Set default payment date to today
+            selectedPaymentDate = new Date();
+            updateSelectedPaymentDateText();
+            renderPaymentCalendar();
+            
+            // Event listeners for calendar
+            document.getElementById('paymentDatePickerBtn').addEventListener('click', () => {
+                document.getElementById('paymentCalendarModal').classList.remove('hidden');
+            });
+
+            document.getElementById('closePaymentCalendar').addEventListener('click', () => {
+                document.getElementById('paymentCalendarModal').classList.add('hidden');
+            });
+
+            document.getElementById('prevPaymentMonth').addEventListener('click', () => {
+                paymentCurrentMonth--;
+                if (paymentCurrentMonth < 0) {
+                    paymentCurrentMonth = 11;
+                    paymentCurrentYear--;
+                }
+                renderPaymentCalendar();
+            });
+
+            document.getElementById('nextPaymentMonth').addEventListener('click', () => {
+                paymentCurrentMonth++;
+                if (paymentCurrentMonth > 11) {
+                    paymentCurrentMonth = 0;
+                    paymentCurrentYear++;
+                }
+                renderPaymentCalendar();
+            });
+
+            document.getElementById('clearPaymentDateBtn').addEventListener('click', () => {
+                selectedPaymentDate = new Date(); // Reset to today
+                updateSelectedPaymentDateText();
+                renderPaymentCalendar();
+            });
+
+            document.getElementById('todayPaymentBtn').addEventListener('click', () => {
+                const today = new Date();
+                selectedPaymentDate = new Date(today);
+                paymentCurrentMonth = today.getMonth();
+                paymentCurrentYear = today.getFullYear();
+                updateSelectedPaymentDateText();
+                renderPaymentCalendar();
+            });
+
+            document.getElementById('selectPaymentDateBtn').addEventListener('click', () => {
+                // Update the hidden input field with the selected date
+                const dateStr = selectedPaymentDate.toISOString().split('T')[0];
+                document.getElementById('paymentDate').value = dateStr;
+                
+                document.getElementById('paymentCalendarModal').classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('paymentCalendarModal').addEventListener('click', (e) => {
+                if (e.target.id === 'paymentCalendarModal') {
+                    document.getElementById('paymentCalendarModal').classList.add('hidden');
+                }
+            });
+        }
+
         // Setup smooth navigation
         function setupSmoothNavigation() {
             // Add fade-out effect when navigating
@@ -481,6 +695,7 @@
                 setupPaymentMethodToggle();
                 setupFormHandling();
                 setupSmoothNavigation();
+                setupPaymentCalendar();
                 
                 // Set default payment date to today
                 const today = new Date().toISOString().split('T')[0];

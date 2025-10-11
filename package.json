@@ -11,11 +11,11 @@
   },
   "keywords": [
     "electron",
-    "chit-fund",
+    "hsm-tera",
     "finance",
     "management"
   ],
-  "author": "NXQ Team",
+  "author": "HSM Team",
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",
@@ -28,8 +28,8 @@
     "dotenv": "^16.3.1"
   },
   "build": {
-    "appId": "com.nxq.chitfund",
-    "productName": "NXQ Chit Fund",
+    "appId": "com.hsm.tera",
+    "productName": "HSM-TERA",
     "directories": {
       "output": "dist"
     },

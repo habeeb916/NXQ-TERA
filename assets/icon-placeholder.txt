@@ -1,0 +1,14 @@
+# Icon Placeholder
+
+This directory should contain the following icon files for building:
+
+- icon.icns (for Mac) - 512x512px or higher
+- icon.ico (for Windows) - 256x256px or higher  
+- icon.png (for Linux) - 512x512px or higher
+
+You can create these icons from a single high-resolution PNG file using online converters or tools like:
+- Online: https://convertio.co/png-icns/ or https://cloudconvert.com/png-to-ico
+- Mac: Use the built-in Preview app to export as .icns
+- Windows: Use online converters for .ico files
+
+For now, the build will work without icons (using default Electron icons).

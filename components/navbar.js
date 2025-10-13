@@ -128,3 +128,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
     loadNavbar(currentPage);
 });
+
+// Load toast script if not already loaded
+if (!document.querySelector('script[src*="toast.js"]')) {
+    const toastScript = document.createElement('script');
+    toastScript.src = '../components/toast.js';
+    document.head.appendChild(toastScript);
+}

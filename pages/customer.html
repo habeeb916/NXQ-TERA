@@ -1396,7 +1396,7 @@
           const winningAmount = parseFloat(formData.get('winningAmount'));
           
           if (!currentCustomerId) {
-            alert('Customer not loaded');
+            showToast('Customer not loaded', 'error');
             return;
           }
 
@@ -1419,13 +1419,13 @@
             if (addResult.success) {
               document.getElementById('winnerModal').classList.add('hidden');
               await loadCustomerWinner();
-              alert('Customer marked as winner successfully!');
+              showToast('Customer marked as winner successfully!', 'success');
             } else {
-              alert('Error marking customer as winner: ' + addResult.error);
+              showToast('Error marking customer as winner: ' + addResult.error, 'error');
             }
           } catch (error) {
             console.error('Error marking winner:', error);
-            alert('Error marking customer as winner');
+            showToast('Error marking customer as winner', 'error');
           }
         });
       }
@@ -1471,7 +1471,7 @@
 
           // Validate amount
           if (!amount || amount <= 0) {
-            alert('Please enter a valid delivery amount');
+            showToast('Please enter a valid delivery amount', 'error');
             return;
           }
 

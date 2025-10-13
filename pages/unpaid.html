@@ -50,6 +50,7 @@
     <script>
         let customers = [];
         let payments = [];
+        let winners = [];
         let unpaidCustomers = [];
 
         // Check authentication
@@ -79,9 +80,10 @@
         // Load data
         async function loadData() {
             try {
-                const [customersResult, paymentsResult] = await Promise.all([
+                const [customersResult, paymentsResult, winnersResult] = await Promise.all([
                     window.electronAPI.customer.getAll(),
-                    window.electronAPI.payment.getAll()
+                    window.electronAPI.payment.getAll(),
+                    window.electronAPI.winners.getAll()
                 ]);
 
                 if (customersResult.success) {
@@ -90,6 +92,10 @@
 
                 if (paymentsResult.success) {
                     payments = paymentsResult.payments;
+                }
+
+                if (winnersResult.success) {
+                    winners = winnersResult.winners;
                 }
 
                 findUnpaidCustomers();
@@ -103,7 +109,15 @@
         function findUnpaidCustomers() {
             const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
             
+            // Get winner customer IDs to exclude them
+            const winnerCustomerIds = new Set(winners.map(winner => winner.customer_id));
+            
             unpaidCustomers = customers.filter(customer => {
+                // Skip winners - they don't need to pay extra money
+                if (winnerCustomerIds.has(customer.id)) {
+                    return false;
+                }
+                
                 // Check if customer has any payment for current month
                 const hasPayment = payments.some(payment => 
                     payment.customer_id === customer.id && 

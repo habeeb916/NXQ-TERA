@@ -762,18 +762,30 @@ class Database {
                            SELECT 1 FROM payments p 
                            WHERE p.customer_id = c.id 
                            AND p.month_year = strftime('%Y-%m', 'now')
+                         )
+                         AND NOT EXISTS (
+                           SELECT 1 FROM winners w 
+                           WHERE w.customer_id = c.id
                          )`,
         paidThisMonth: `SELECT COUNT(*) as count FROM customers c 
                        WHERE EXISTS (
                          SELECT 1 FROM payments p 
                          WHERE p.customer_id = c.id 
                          AND p.month_year = strftime('%Y-%m', 'now')
+                       )
+                       AND NOT EXISTS (
+                         SELECT 1 FROM winners w 
+                         WHERE w.customer_id = c.id
                        )`,
         totalOutstanding: `SELECT COALESCE(SUM(c.monthly_amount), 0) as total FROM customers c 
                           WHERE NOT EXISTS (
                             SELECT 1 FROM payments p 
                             WHERE p.customer_id = c.id 
                             AND p.month_year = strftime('%Y-%m', 'now')
+                          )
+                          AND NOT EXISTS (
+                            SELECT 1 FROM winners w 
+                            WHERE w.customer_id = c.id
                           )`
       };
 

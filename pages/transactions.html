@@ -712,20 +712,7 @@
             showToast('Transaction details feature coming soon', 'info');
         }
 
-        function showToast(message, type = 'info') {
-            // Simple toast notification
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 ${
-                type === 'error' ? 'bg-red-500' : 
-                type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-            }`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
+        // Toast function is now loaded from components/toast.js
 
         // Event listeners
         document.getElementById('datePickerBtn').addEventListener('click', () => {

@@ -672,40 +672,7 @@
             }
         }
 
-        // Toast notification function
-        function showToast(message, type = 'info') {
-            // Create toast element
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-all duration-300 translate-x-full`;
-            
-            // Set color based on type
-            switch (type) {
-                case 'success':
-                    toast.classList.add('bg-green-500');
-                    break;
-                case 'error':
-                    toast.classList.add('bg-red-500');
-                    break;
-                default:
-                    toast.classList.add('bg-blue-500');
-            }
-            
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            // Animate in
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full');
-            }, 100);
-            
-            // Remove after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 3000);
-        }
+        // Toast function is now loaded from components/toast.js
     </script>
 </body>
 </html>

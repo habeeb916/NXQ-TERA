@@ -187,6 +187,7 @@
     // Global variables
     let customersData = [];
     let paymentsData = [];
+    let winnersData = [];
     let selectedMonthYear = '';
     let defaultStartDate = '2024-12-15';
     let isLoadingDashboardData = false;
@@ -249,10 +250,11 @@
         // Load default start date
         await loadDefaultStartDate();
         
-        // Load customers and payments data
+        // Load customers, payments, and winners data
         await Promise.all([
           loadCustomersData(),
-          loadPaymentsData()
+          loadPaymentsData(),
+          loadWinnersData()
         ]);
         
         // Generate month options (automatically sets current month as default)
@@ -345,6 +347,33 @@
       } catch (error) {
         console.error('Dashboard: Error loading payments:', error);
         paymentsData = [];
+      }
+    }
+
+    // Load winners data
+    async function loadWinnersData() {
+      try {
+        console.log('Dashboard: Loading winners data...');
+        
+        if (!window.electronAPI || !window.electronAPI.winners) {
+          console.log('Dashboard: electronAPI not available');
+          return;
+        }
+        
+        const result = await window.electronAPI.winners.getAll();
+        console.log('Dashboard: Winners result:', result);
+        
+        if (result.success && result.winners) {
+          winnersData = result.winners;
+          console.log('Dashboard: Loaded', winnersData.length, 'winners');
+        } else {
+          winnersData = [];
+          console.log('Dashboard: No winners found');
+        }
+        
+      } catch (error) {
+        console.error('Dashboard: Error loading winners:', error);
+        winnersData = [];
       }
     }
 
@@ -460,16 +489,20 @@
       // Get customers who paid for this month
       const paidCustomerIds = new Set(monthPayments.map(payment => payment.customer_id));
       
-      // Calculate stats
+      // Get winner customer IDs to exclude them from calculations
+      const winnerCustomerIds = new Set(winnersData.map(winner => winner.customer_id));
+      
+      // Calculate stats excluding winners
       const totalCustomers = customersData.length;
-      const paidThisMonth = paidCustomerIds.size;
-      const unpaidThisMonth = totalCustomers - paidThisMonth;
+      const nonWinnerCustomers = customersData.filter(customer => !winnerCustomerIds.has(customer.id));
+      const nonWinnerPaidThisMonth = nonWinnerCustomers.filter(customer => paidCustomerIds.has(customer.id)).length;
+      const unpaidThisMonth = nonWinnerCustomers.length - nonWinnerPaidThisMonth;
       const totalCollected = monthPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
       
       return {
         totalCustomers,
         unpaidThisMonth,
-        paidThisMonth,
+        paidThisMonth: nonWinnerPaidThisMonth,
         totalCollected
       };
     }

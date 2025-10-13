@@ -6,7 +6,40 @@ require('dotenv').config();
 class Database {
   constructor() {
     this.db = null;
-    this.dbPath = path.join(__dirname, 'nxq.db');
+    // Check if we're in development or built version
+    const isDev = process.env.NODE_ENV === 'development' || !require('electron').app.isPackaged;
+    
+    if (isDev) {
+      // Development: use the database in the project folder
+      this.dbPath = path.join(__dirname, 'nxq.db');
+    } else {
+      // Built version: use userData directory
+      const { app } = require('electron');
+      const userDataPath = app.getPath('userData');
+      this.dbPath = path.join(userDataPath, 'nxq.db');
+      
+      // Copy the database from resources to userData if it doesn't exist
+      this.ensureDatabaseExists();
+    }
+  }
+  
+  // Ensure database exists in built version
+  async ensureDatabaseExists() {
+    const fs = require('fs');
+    const { app } = require('electron');
+    
+    if (!fs.existsSync(this.dbPath)) {
+      try {
+        // Try to copy from resources
+        const resourcePath = path.join(process.resourcesPath, 'database', 'nxq.db');
+        if (fs.existsSync(resourcePath)) {
+          fs.copyFileSync(resourcePath, this.dbPath);
+          console.log('Database copied from resources to userData');
+        }
+      } catch (error) {
+        console.log('Could not copy database from resources, will create new one');
+      }
+    }
   }
 
   // Initialize database connection

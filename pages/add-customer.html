@@ -64,7 +64,7 @@
                 <div class="space-y-2">
             <label for="customerCode" class="block text-sm font-semibold text-slate-700">Customer Code</label>
             <div class="flex items-center gap-2 max-w-xs">
-              <span class="px-3 py-3 bg-slate-100 border border-slate-200 rounded-l-xl text-slate-600 font-medium">GD7-</span>
+              <span id="customerCodePrefix" class="px-3 py-3 bg-slate-100 border border-slate-200 rounded-l-xl text-slate-600 font-medium">Loading...</span>
               <input type="number" id="customerCodeNumber" name="customerCodeNumber" required
                      class="w-20 px-3 py-3 border border-slate-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                      placeholder="Auto" min="1">
@@ -127,9 +127,7 @@
             <select id="monthlyAmount" name="monthlyAmount" required
                     class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
               <option value="">Select monthly amount</option>
-              <option value="500">₹500</option>
-              <option value="1000">₹1,000</option>
-              <option value="2000">₹2,000</option>
+              <!-- Options will be populated dynamically based on selected scheme -->
             </select>
               </div>
             </div>
@@ -151,6 +149,10 @@
   </main>
 
   <script>
+    console.log('='.repeat(80));
+    console.log('ADD CUSTOMER PAGE SCRIPT LOADED');
+    console.log('='.repeat(80));
+    
     // Fade in animation
     (function() {
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -161,15 +163,142 @@
       document.addEventListener('DOMContentLoaded', fadeIn);
     })();
 
+    // Load scheme data (prefix, amounts, and start date)
+    async function loadSchemeData() {
+      console.log('Add Customer page: loadSchemeData() function called!');
+      try {
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const prefixSpan = document.getElementById('customerCodePrefix');
+        const monthlyAmountSelect = document.getElementById('monthlyAmount');
+        const startDateInput = document.getElementById('startDate');
+        
+        console.log('Add Customer page: Loading scheme data for scheme ID:', selectedSchemeId);
+        console.log('Add Customer page: Elements found:', {
+          prefixSpan: !!prefixSpan,
+          monthlyAmountSelect: !!monthlyAmountSelect,
+          startDateInput: !!startDateInput
+        });
+        
+        if (selectedSchemeId) {
+          const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+          console.log('Add Customer page: Scheme data result:', result);
+          
+               if (result.success && result.scheme) {
+                 const scheme = result.scheme;
+                 console.log('Add Customer page: Scheme loaded:', scheme);
+                 console.log('Add Customer page: Full scheme object:', JSON.stringify(scheme, null, 2));
+            
+            // Update prefix display
+            if (prefixSpan) {
+              prefixSpan.textContent = `${scheme.prefix}-`;
+              console.log('Add Customer page: Prefix set to:', scheme.prefix);
+            }
+            
+            // Update start date with scheme's start date
+            if (startDateInput && scheme.start_date) {
+              startDateInput.value = scheme.start_date;
+              console.log('Add Customer page: Start date set to:', scheme.start_date);
+            }
+            
+            // Update monthly amounts dropdown
+            if (monthlyAmountSelect) {
+              monthlyAmountSelect.innerHTML = '<option value="">Select monthly amount</option>';
+              
+               // Parse amounts - handle both JSON string and already parsed array
+               let amounts = [];
+               console.log('Add Customer page: Raw scheme.amounts:', scheme.amounts, 'Type:', typeof scheme.amounts);
+               
+               if (Array.isArray(scheme.amounts)) {
+                 // Already an array
+                 amounts = scheme.amounts;
+                 console.log('Add Customer page: Amounts already an array:', amounts);
+               } else if (typeof scheme.amounts === 'string') {
+                 // JSON string, need to parse
+                 try {
+                   amounts = JSON.parse(scheme.amounts);
+                   console.log('Add Customer page: Parsed amounts from string:', amounts);
+                 } catch (e) {
+                   console.error('Error parsing scheme amounts:', e);
+                   console.error('Raw amounts string:', JSON.stringify(scheme.amounts));
+                   amounts = ['500', '1000', '2000']; // fallback
+                 }
+               } else {
+                 console.error('Unexpected amounts type:', typeof scheme.amounts);
+                 amounts = ['500', '1000', '2000']; // fallback
+               }
+              
+              // Add amount options
+              amounts.forEach(amount => {
+                const option = document.createElement('option');
+                option.value = amount;
+                option.textContent = `₹${parseInt(amount).toLocaleString()}`;
+                monthlyAmountSelect.appendChild(option);
+                console.log('Add Customer page: Added amount option:', amount, '₹' + parseInt(amount).toLocaleString());
+              });
+              
+              console.log('Add Customer page: Monthly amounts loaded:', amounts.length, 'options');
+              console.log('Add Customer page: Final dropdown options:', Array.from(monthlyAmountSelect.options).map(opt => opt.textContent));
+            }
+          } else {
+            console.log('Add Customer page: No scheme found, using fallback values');
+            // Fallback values
+            if (prefixSpan) prefixSpan.textContent = 'GD7-';
+            if (monthlyAmountSelect) {
+              monthlyAmountSelect.innerHTML = `
+                <option value="">Select monthly amount</option>
+                <option value="500">₹500</option>
+                <option value="1000">₹1,000</option>
+                <option value="2000">₹2,000</option>
+              `;
+            }
+            // Load default start date as fallback
+            await loadDefaultStartDate();
+          }
+        } else {
+          console.log('Add Customer page: No scheme selected, using fallback values');
+          // No scheme selected - use fallback values
+          if (prefixSpan) prefixSpan.textContent = 'GD7-';
+          if (monthlyAmountSelect) {
+            monthlyAmountSelect.innerHTML = `
+              <option value="">Select monthly amount</option>
+              <option value="500">₹500</option>
+              <option value="1000">₹1,000</option>
+              <option value="2000">₹2,000</option>
+            `;
+          }
+          // Load default start date as fallback
+          await loadDefaultStartDate();
+        }
+      } catch (error) {
+        console.error('Error loading scheme data:', error);
+        // Fallback values
+        const prefixSpan = document.getElementById('customerCodePrefix');
+        const monthlyAmountSelect = document.getElementById('monthlyAmount');
+        if (prefixSpan) prefixSpan.textContent = 'GD7-';
+        if (monthlyAmountSelect) {
+          monthlyAmountSelect.innerHTML = `
+            <option value="">Select monthly amount</option>
+            <option value="500">₹500</option>
+            <option value="1000">₹1,000</option>
+            <option value="2000">₹2,000</option>
+          `;
+        }
+        // Load default start date as fallback
+        await loadDefaultStartDate();
+      }
+    }
+
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('Add Customer page: DOMContentLoaded event fired!');
       console.log('Add Customer page: Initializing...');
       
       // Check authentication
       checkAuthentication();
       
-      // Load default start date from environment
-      loadDefaultStartDate();
+      // Load scheme data (prefix, amounts, and start date)
+      console.log('Add Customer page: About to call loadSchemeData()');
+      loadSchemeData();
       
       // Generate next customer code
       generateNextCustomerCode();
@@ -196,38 +325,36 @@
       }
     }
 
-    // Load default start date from environment
+    // Load today's date as default start date
     async function loadDefaultStartDate() {
       try {
-        const result = await window.electronAPI.getDefaultStartDate();
-        if (result.success) {
-          const startDateInput = document.getElementById('startDate');
-          if (startDateInput) {
-            startDateInput.value = result.startDate;
-            console.log('Add Customer page: Default start date loaded:', result.startDate);
-          }
-      } else {
-          console.error('Add Customer page: Failed to load default start date:', result.error);
-          // Fallback to today's date
-          const today = new Date().toISOString().split('T')[0];
-          document.getElementById('startDate').value = today;
-            }
-          } catch (error) {
-        console.error('Add Customer page: Error loading default start date:', error);
-        // Fallback to today's date
+        // Always use today's date instead of hardcoded default
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('startDate').value = today;
+        const startDateInput = document.getElementById('startDate');
+        if (startDateInput) {
+          startDateInput.value = today;
+          console.log('Add Customer page: Today\'s date loaded:', today);
+        }
+      } catch (error) {
+        console.error('Add Customer page: Error setting today\'s date:', error);
       }
     }
 
     // Generate next customer code
     async function generateNextCustomerCode() {
       try {
-        const result = await window.electronAPI.customer.getNextCode();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.customer.getNextCode(selectedSchemeId);
         if (result.success) {
           const customerCodeInput = document.getElementById('customerCodeNumber');
           if (customerCodeInput) {
-            customerCodeInput.value = result.nextNumber;
+            // Extract number from the generated code (e.g., "GD7-5" -> "5")
+            const numberMatch = result.nextCode.match(/-(\d+)$/);
+            if (numberMatch) {
+              customerCodeInput.value = numberMatch[1];
+            } else {
+              customerCodeInput.value = 1; // fallback
+            }
             console.log('Add Customer page: Next customer code generated:', result.nextCode);
           }
         } else {
@@ -256,7 +383,26 @@
           return;
         }
         
-        const customerCode = `GD7-${number}`;
+        // Get selected scheme to determine prefix
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        let customerCode = '';
+        
+        if (selectedSchemeId) {
+          try {
+            const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+            if (result.success && result.scheme) {
+              const prefix = result.scheme.prefix;
+              customerCode = `${prefix}-${number}`;
+            } else {
+              customerCode = `GD7-${number}`; // fallback
+            }
+          } catch (error) {
+            console.error('Error getting scheme:', error);
+            customerCode = `GD7-${number}`; // fallback
+          }
+        } else {
+          customerCode = `GD7-${number}`; // fallback
+        }
         
         try {
           const result = await window.electronAPI.customer.validateCode(customerCode);
@@ -264,7 +410,7 @@
             if (result.exists) {
               errorDiv.textContent = `Customer code ${customerCode} already exists!`;
               errorDiv.classList.remove('hidden');
-      } else {
+            } else {
               errorDiv.classList.add('hidden');
             }
           }
@@ -304,15 +450,35 @@
         const formData = new FormData(form);
         const customerCodeNumber = formData.get('customerCodeNumber');
         
+        // Get selected scheme to determine prefix
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        let customerCode = '';
+        
+        if (selectedSchemeId) {
+          try {
+            const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+            if (result.success && result.scheme) {
+              const prefix = result.scheme.prefix;
+              customerCode = `${prefix}-${customerCodeNumber}`;
+            } else {
+              customerCode = `GD7-${customerCodeNumber}`; // fallback
+            }
+          } catch (error) {
+            console.error('Error getting scheme:', error);
+            customerCode = `GD7-${customerCodeNumber}`; // fallback
+          }
+        } else {
+          customerCode = `GD7-${customerCodeNumber}`; // fallback
+        }
+        
         // Validate customer code
-        const customerCode = `GD7-${customerCodeNumber}`;
         const validationResult = await window.electronAPI.customer.validateCode(customerCode);
         if (!validationResult.success) {
           throw new Error('Failed to validate customer code. Please try again.');
         }
         if (!validationResult.valid) {
           throw new Error(`Customer code ${customerCode} already exists. Please choose a different number.`);
-      }
+        }
       
       const customerData = {
           customer_code: customerCode,
@@ -320,7 +486,8 @@
           phone: formData.get('phone'),
           address: formData.get('address'),
           start_date: formData.get('startDate'),
-          monthly_amount: parseInt(formData.get('monthlyAmount'))
+          monthly_amount: parseInt(formData.get('monthlyAmount')),
+          scheme_id: selectedSchemeId ? parseInt(selectedSchemeId) : null
         };
         
         console.log('Add Customer page: Submitting customer data:', customerData);
@@ -344,7 +511,7 @@
           
           // Reset form
           form.reset();
-          loadDefaultStartDate();
+          loadSchemeData();
           
           // Redirect to customers page after a short delay
           setTimeout(() => {

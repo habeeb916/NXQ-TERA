@@ -5,7 +5,7 @@ require('dotenv').config();
 
 class AuthService {
   constructor() {
-    this.db = new Database();
+    this.db = Database.getInstance(); // Use singleton instance
     this.jwtSecret = process.env.JWT_SECRET || 'nxq-super-secret-key-change-in-production';
     this.tokenExpiry = process.env.TOKEN_EXPIRY || '24h';
     this.maxLoginAttempts = parseInt(process.env.MAX_LOGIN_ATTEMPTS) || 5;

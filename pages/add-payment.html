@@ -394,20 +394,41 @@
         // Generate month options
         async function generateMonthOptions() {
             try {
-                const result = await window.electronAPI.getDefaultStartDate();
-                console.log('Add Payment: Default start date result:', result);
+                // Get scheme duration from selected scheme
+                const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+                let schemeDuration = 30; // Default fallback
                 
-                // Extract the actual date string from the result
-                let startDate;
-                if (result && result.success && result.startDate) {
-                    startDate = new Date(result.startDate);
-                    console.log('Add Payment: Start date object:', startDate);
+                if (selectedSchemeId) {
+                    try {
+                        const schemeResult = await window.electronAPI.schemes.getById(selectedSchemeId);
+                        if (schemeResult && schemeResult.success && schemeResult.scheme && schemeResult.scheme.duration) {
+                            schemeDuration = schemeResult.scheme.duration;
+                            console.log('Add Payment: Using scheme duration:', schemeDuration, 'months');
+                        } else {
+                            console.log('Add Payment: Scheme duration not found, using default 30 months');
+                        }
+                    } catch (error) {
+                        console.error('Add Payment: Error getting scheme duration:', error);
+                    }
                 } else {
-                    console.error('Add Payment: Invalid start date result:', result);
-                    return;
+                    console.log('Add Payment: No scheme selected, using default 30 months');
                 }
                 
-                const currentDate = new Date();
+                // Get start date from customer data or default
+                let startDate;
+                if (customerData && customerData.start_date) {
+                    startDate = new Date(customerData.start_date);
+                    console.log('Add Payment: Using customer start date:', startDate);
+                } else {
+                    const result = await window.electronAPI.getDefaultStartDate();
+                    if (result && result.success && result.startDate) {
+                        startDate = new Date(result.startDate);
+                        console.log('Add Payment: Using default start date:', startDate);
+                    } else {
+                        console.error('Add Payment: No start date available');
+                        return;
+                    }
+                }
                 
                 const monthSelect = document.getElementById('month');
                 const paidMonths = new Set(paymentsData.map(payment => payment.month_year));
@@ -418,10 +439,9 @@
                 let currentMonth = new Date(startDate);
                 let monthNumber = 1;
                 
-                // Generate 30 months from start date
-                while (monthNumber <= 30) {
+                // Generate months based on scheme duration
+                while (monthNumber <= schemeDuration) {
                     const monthYear = currentMonth.toISOString().slice(0, 7); // YYYY-MM format
-                    const monthName = currentMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                     
                     // Skip already paid months
                     if (!paidMonths.has(monthYear)) {
@@ -443,6 +463,8 @@
                     currentMonth.setMonth(currentMonth.getMonth() + 1);
                     monthNumber++;
                 }
+                
+                console.log(`Add Payment: Generated ${schemeDuration} month options`);
             } catch (error) {
                 console.error('Error generating month options:', error);
             }
@@ -477,6 +499,7 @@
                 
       const paymentData = {
                     customer_id: parseInt(customerId),
+                    scheme_id: customerData.scheme_id, // Add scheme_id from customer data
                     amount: customerData.monthly_amount,
                     payment_date: formData.get('paymentDate'),
                     month_year: formData.get('month'),

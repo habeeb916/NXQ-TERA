@@ -80,10 +80,11 @@
         // Load data
         async function loadData() {
             try {
+                const selectedSchemeId = localStorage.getItem('selectedSchemeId');
                 const [customersResult, paymentsResult, winnersResult] = await Promise.all([
-                    window.electronAPI.customer.getAll(),
-                    window.electronAPI.payment.getAll(),
-                    window.electronAPI.winners.getAll()
+                    window.electronAPI.customer.getAll(selectedSchemeId),
+                    window.electronAPI.payment.getAll(selectedSchemeId),
+                    window.electronAPI.winners.getAll(selectedSchemeId)
                 ]);
 
                 if (customersResult.success) {

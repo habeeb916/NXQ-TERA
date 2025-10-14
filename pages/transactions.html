@@ -511,8 +511,11 @@
                     throw new Error('API not available. Please restart the application.');
                 }
                 
-                // Fetch transactions for the selected date
-                const response = await window.electronAPI.getTransactionsByDate(date);
+                // Get selected scheme ID
+                const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+                
+                // Fetch transactions for the selected date and scheme
+                const response = await window.electronAPI.getTransactionsByDate(date, selectedSchemeId);
                 
                 if (!response || !response.success) {
                     throw new Error(response?.error || 'Failed to fetch transactions');

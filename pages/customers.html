@@ -236,7 +236,8 @@
           return;
         }
         
-        const result = await window.electronAPI.customer.getAll();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.customer.getAll(selectedSchemeId);
         console.log('Customers page: Customers result:', result);
         
         if (result.success && result.customers) {

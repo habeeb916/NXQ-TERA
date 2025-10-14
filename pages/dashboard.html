@@ -44,16 +44,28 @@
     <!-- Header Section -->
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-xl font-semibold text-slate-800">Dashboard</h1>
-      <div class="flex items-center gap-3 bg-gradient-to-r from-brand-50 to-emerald-50 rounded-xl border border-brand-200 px-4 py-3 shadow-lg ring-1 ring-brand-100">
-        <div class="flex items-center justify-center w-8 h-8 bg-brand-100 rounded-lg">
-          <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
+      <div class="flex items-center gap-4">
+        <!-- Scheme Indicator -->
+        <div id="schemeIndicator" class="hidden">
+          <div class="flex items-center space-x-2 px-3 py-2 bg-brand-100 rounded-lg border border-brand-200">
+            <div class="w-2 h-2 bg-brand-500 rounded-full"></div>
+            <span id="currentSchemeName" class="text-sm font-medium text-brand-700">Loading...</span>
+            <button onclick="switchScheme()" class="text-brand-600 hover:text-brand-800 text-xs underline">Switch</button>
+          </div>
         </div>
-        <span class="text-brand-700 font-semibold">View Month:</span>
-        <select id="monthSelector" class="px-3 py-2 border border-brand-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm bg-white shadow-sm font-medium text-brand-800">
-          <option value="">Select Month</option>
-        </select>
+        
+        <!-- View Month Section -->
+        <div class="flex items-center gap-3 bg-gradient-to-r from-brand-50 to-emerald-50 rounded-xl border border-brand-200 px-4 py-3 shadow-lg ring-1 ring-brand-100">
+          <div class="flex items-center justify-center w-8 h-8 bg-brand-100 rounded-lg">
+            <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <span class="text-brand-700 font-semibold">View Month:</span>
+          <select id="monthSelector" class="px-3 py-2 border border-brand-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm bg-white shadow-sm font-medium text-brand-800">
+            <option value="">Select Month</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -64,7 +76,7 @@
         <div class="bg-white rounded-2xl border border-slate-100 p-4 shadow-card cursor-pointer hover:shadow-lg transition-all duration-200" onclick="navigateToCustomers()">
             <div class="flex items-center justify-between">
             <div class="flex-1">
-              <div class="text-sm text-slate-500">Total Customers</div>
+              <div class="text-sm text-slate-500">Total Active Customers</div>
               <div class="mt-1 text-2xl font-semibold" data-countup data-countup-value="0" id="totalCustomers">0</div>
               </div>
             <div class="flex-shrink-0 ml-3">
@@ -191,6 +203,7 @@
     let selectedMonthYear = '';
     let defaultStartDate = '2024-12-15';
     let isLoadingDashboardData = false;
+    let monthSelectorListenerSetup = false;
 
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
@@ -201,6 +214,10 @@
       
       // Load dashboard data
       loadDashboardData();
+      
+      // Load scheme indicator
+      loadSelectedSchemeIndicator();
+      
       
       console.log('Dashboard: Initialization completed');
     });
@@ -247,8 +264,9 @@
       console.log('Dashboard: Loading dashboard data...');
       
       try {
-        // Load default start date
+        // Load default start date from environment first, then override with scheme start date
         await loadDefaultStartDate();
+        await loadSchemeStartDate();
         
         // Load customers, payments, and winners data
         await Promise.all([
@@ -257,11 +275,19 @@
           loadWinnersData()
         ]);
         
-        // Generate month options (automatically sets current month as default)
+        // Generate month options after loading data
         await generateMonthOptions();
         
-        // Update dashboard cards
-        updateDashboardCards();
+        // Debug: Log all loaded data
+        console.log('Dashboard: === DATA LOADING SUMMARY ===');
+        console.log('Dashboard: Selected Scheme ID:', localStorage.getItem('selectedSchemeId'));
+        console.log('Dashboard: Customers loaded:', customersData.length);
+        console.log('Dashboard: Payments loaded:', paymentsData.length);
+        console.log('Dashboard: Winners loaded:', winnersData.length);
+        console.log('Dashboard: Selected month year:', selectedMonthYear);
+        console.log('Dashboard: ================================');
+        
+        // Note: updateDashboardCards() is now called from generateMonthOptions() after setting default month
         
         // Create chart
         createMonthlyCollectionChart();
@@ -289,10 +315,30 @@
             defaultStartDate = result;
           }
           
-          console.log('Dashboard: Default start date loaded:', defaultStartDate);
+          console.log('Dashboard: Environment default start date loaded:', defaultStartDate);
         }
       } catch (error) {
         console.error('Dashboard: Error getting default start date:', error);
+      }
+    }
+
+    // Load scheme start date (preferred over environment default)
+    async function loadSchemeStartDate() {
+      try {
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        if (selectedSchemeId && window.electronAPI && window.electronAPI.schemes) {
+          const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+          if (result.success && result.scheme && result.scheme.start_date) {
+            defaultStartDate = result.scheme.start_date;
+            console.log('Dashboard: Scheme start date loaded:', defaultStartDate);
+          } else {
+            console.log('Dashboard: No scheme start date found, using environment default');
+          }
+        } else {
+          console.log('Dashboard: No scheme selected, using environment default');
+        }
+      } catch (error) {
+        console.error('Dashboard: Error getting scheme start date:', error);
       }
     }
 
@@ -306,7 +352,8 @@
           return;
         }
         
-        const result = await window.electronAPI.customer.getAll();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.customer.getAll(selectedSchemeId);
         console.log('Dashboard: Customers result:', result);
         
         if (result.success && result.customers) {
@@ -333,15 +380,18 @@
           return;
         }
         
-        const result = await window.electronAPI.payment.getAll();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.payment.getAll(selectedSchemeId);
         console.log('Dashboard: Payments result:', result);
         
         if (result.success && result.payments) {
           paymentsData = result.payments;
           console.log('Dashboard: Loaded', paymentsData.length, 'payments');
+          console.log('Dashboard: Payments data:', paymentsData);
         } else {
           paymentsData = [];
           console.log('Dashboard: No payments found');
+          console.log('Dashboard: Payments result:', result);
         }
         
       } catch (error) {
@@ -360,7 +410,8 @@
           return;
         }
         
-        const result = await window.electronAPI.winners.getAll();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.winners.getAll(selectedSchemeId);
         console.log('Dashboard: Winners result:', result);
         
         if (result.success && result.winners) {
@@ -383,6 +434,7 @@
       const monthSelector = document.getElementById('monthSelector');
       if (!monthSelector) {
         console.log('Dashboard: monthSelector element not found!');
+        console.log('Dashboard: Available elements with "month" in ID:', Array.from(document.querySelectorAll('[id*="month"]')).map(el => el.id));
         return;
       }
       console.log('Dashboard: monthSelector element found');
@@ -390,29 +442,81 @@
       // Clear existing options
       monthSelector.innerHTML = '<option value="">Select Month</option>';
       
-      const startDate = new Date(defaultStartDate);
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const currentMonthYear = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+      // Get current month for smart default selection
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based
+      const currentMonthYear = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
       
-      console.log('Dashboard: Default start date:', defaultStartDate);
+      console.log('Dashboard: Current date calculation:', {
+        currentDate,
+        currentYear,
+        currentMonth,
+        currentMonthYear
+      });
+      
+      // Get scheme data (start date and duration) in a single API call
+      let schemeStartDate = defaultStartDate;
+      let schemeDuration = 30; // default
+      
+      try {
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        console.log('Dashboard: Selected scheme ID from localStorage:', selectedSchemeId);
+        
+        if (selectedSchemeId && window.electronAPI && window.electronAPI.schemes) {
+          console.log('Dashboard: Calling schemes.getById for scheme:', selectedSchemeId);
+          const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+          console.log('Dashboard: Scheme API result:', result);
+          
+          if (result.success && result.scheme) {
+            console.log('Dashboard: Scheme data received:', result.scheme);
+            
+            if (result.scheme.start_date) {
+              schemeStartDate = result.scheme.start_date;
+              console.log('Dashboard: Using scheme start date:', schemeStartDate);
+            } else {
+              console.log('Dashboard: No scheme start date found, using environment default:', defaultStartDate);
+            }
+            if (result.scheme.duration) {
+              schemeDuration = result.scheme.duration;
+              console.log('Dashboard: Using scheme duration:', schemeDuration);
+            }
+          } else {
+            console.log('Dashboard: No scheme found or API failed, using environment default start date:', defaultStartDate);
+          }
+        } else {
+          console.log('Dashboard: No scheme selected or API not available, using environment default start date:', defaultStartDate);
+        }
+      } catch (error) {
+        console.log('Dashboard: Error getting scheme data, using environment default start date:', defaultStartDate, error);
+      }
+      
+      const startDate = new Date(schemeStartDate);
+      const now = new Date();
+      
+      console.log('Dashboard: Scheme start date:', schemeStartDate);
       console.log('Dashboard: Start date object:', startDate);
       console.log('Dashboard: Current date:', now);
       console.log('Dashboard: Current month year:', currentMonthYear);
       
-      // Generate months from start date to current month
+      // Generate months from start date for the full scheme duration (including future dates)
       let monthDate = new Date(startDate);
       let monthNumber = 1;
       let currentMonthOption = null;
       let optionsGenerated = 0;
       
-      // Create end date for the current month (last day of current month)
-      const endDate = new Date(currentYear, currentMonth + 1, 0);
+      console.log('Dashboard: Generating months for duration:', schemeDuration);
       
-      console.log('Dashboard: End date (last day of current month):', endDate);
+      // Calculate end date (start date + duration)
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + schemeDuration);
       
-      while (monthDate <= endDate && optionsGenerated < 30) {
+      console.log('Dashboard: Start date:', startDate);
+      console.log('Dashboard: Scheme end date:', endDate);
+      console.log('Dashboard: Current date:', now);
+      console.log('Dashboard: Will generate all months including future dates');
+      
+      while (monthDate < endDate && optionsGenerated < schemeDuration) {
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const monthYear = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
         const displayText = `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()} (${monthNumber})`;
@@ -436,29 +540,64 @@
         optionsGenerated++;
       }
       
-      // Set current month as default selection
+      // Set default selection - prioritize current month if it's within scheme timeline
+      console.log('Dashboard: === DEFAULT SELECTION LOGIC ===');
+      console.log('Dashboard: currentMonthOption:', currentMonthOption);
+      console.log('Dashboard: currentMonthYear:', currentMonthYear);
+      console.log('Dashboard: monthSelector.options.length:', monthSelector.options.length);
+      console.log('Dashboard: All options:', Array.from(monthSelector.options).map(opt => ({value: opt.value, text: opt.textContent, selected: opt.selected})));
+      
       if (currentMonthOption) {
         currentMonthOption.selected = true;
         selectedMonthYear = currentMonthYear;
-        console.log('Dashboard: Default month set to current month:', currentMonthYear);
+        console.log('Dashboard: ✅ Default month set to current month:', currentMonthYear);
       } else if (monthSelector.options.length > 1) {
-        // Fallback to last option if current month not found
-        const lastOption = monthSelector.options[monthSelector.options.length - 1];
-        lastOption.selected = true;
-        selectedMonthYear = lastOption.value;
-        console.log('Dashboard: Default month set to last available month:', lastOption.value);
+        // If current month is not in scheme timeline, default to first month of scheme
+        const firstOption = monthSelector.options[1]; // Skip the "Select Month" option
+        firstOption.selected = true;
+        selectedMonthYear = firstOption.value;
+        console.log('Dashboard: ✅ Current month not in scheme timeline, defaulting to first month:', firstOption.value);
+        console.log('Dashboard: First option details:', firstOption.value, firstOption.textContent);
+      } else {
+        console.log('Dashboard: ❌ No month options available for selection');
+      }
+      
+      console.log('Dashboard: Final selectedMonthYear after logic:', selectedMonthYear);
+      console.log('Dashboard: ======================================');
+      
+      // Force update the month selector display
+      monthSelector.dispatchEvent(new Event('change'));
+      
+      // Verify the selection was applied
+      console.log('Dashboard: === VERIFICATION ===');
+      console.log('Dashboard: monthSelector.value after selection:', monthSelector.value);
+      console.log('Dashboard: monthSelector.selectedIndex:', monthSelector.selectedIndex);
+      console.log('Dashboard: selectedMonthYear:', selectedMonthYear);
+      console.log('Dashboard: ===================');
+      
+      // Update dashboard cards immediately after setting default month
+      if (selectedMonthYear) {
+        console.log('Dashboard: Updating dashboard cards with default month:', selectedMonthYear);
+        updateDashboardCards();
       }
       
       console.log('Dashboard: Generated', optionsGenerated, 'month options');
       console.log('Dashboard: Total options in selector:', monthSelector.options.length);
+      console.log('Dashboard: Month selector options:', Array.from(monthSelector.options).map(opt => opt.textContent));
       
-      // Setup event listener for month selector
-      setupMonthSelectorListener();
+      // Setup event listener for month selector (only once)
+      if (!monthSelectorListenerSetup) {
+        setupMonthSelectorListener();
+        monthSelectorListenerSetup = true;
+      }
     }
 
     // Update dashboard cards
     function updateDashboardCards() {
       console.log('Dashboard: Updating cards for month:', selectedMonthYear);
+      
+      // Update month labels
+      updateMonthLabels(selectedMonthYear);
       
       // Calculate stats for selected month
       const stats = calculateMonthlyStats(selectedMonthYear);
@@ -472,9 +611,37 @@
       console.log('Dashboard: Cards updated with stats:', stats);
     }
 
+    // Update month labels to show the selected month
+    function updateMonthLabels(monthYear) {
+      if (!monthYear) return;
+      
+      // Parse the month year (format: YYYY-MM)
+      const [year, monthNum] = monthYear.split('-');
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const monthIndex = parseInt(monthNum) - 1;
+      const monthName = monthNames[monthIndex];
+      const displayText = `${monthName} ${year}`;
+      
+      // Update all month labels
+      const labels = ['unpaidMonthLabel', 'paidMonthLabel', 'collectedMonthLabel'];
+      labels.forEach(labelId => {
+        const element = document.getElementById(labelId);
+        if (element) {
+          element.textContent = displayText;
+        }
+      });
+    }
+
     // Calculate monthly stats
     function calculateMonthlyStats(monthYear) {
+      console.log('Dashboard: calculateMonthlyStats called with monthYear:', monthYear);
+      console.log('Dashboard: paymentsData length:', paymentsData.length);
+      console.log('Dashboard: customersData length:', customersData.length);
+      console.log('Dashboard: winnersData length:', winnersData.length);
+      
       if (!monthYear) {
+        console.log('Dashboard: No monthYear provided, returning default stats');
+        // For default stats, show all customers as active (no winners filtered yet)
         return {
           totalCustomers: customersData.length,
           unpaidThisMonth: 0,
@@ -483,28 +650,55 @@
         };
       }
       
+      // Log all payments data for debugging
+      console.log('Dashboard: All payments data:', paymentsData);
+      
       // Get payments for the selected month
       const monthPayments = paymentsData.filter(payment => payment.month_year === monthYear);
+      console.log('Dashboard: Payments for month', monthYear, ':', monthPayments);
       
       // Get customers who paid for this month
       const paidCustomerIds = new Set(monthPayments.map(payment => payment.customer_id));
+      console.log('Dashboard: Paid customer IDs for month', monthYear, ':', Array.from(paidCustomerIds));
       
-      // Get winner customer IDs to exclude them from calculations
-      const winnerCustomerIds = new Set(winnersData.map(winner => winner.customer_id));
+      // Get winners and their winning months to exclude them only from future months
+      const winnerMap = new Map();
+      winnersData.forEach(winner => {
+        winnerMap.set(winner.customer_id, winner.month_year);
+      });
+      console.log('Dashboard: Winner map:', Object.fromEntries(winnerMap));
       
-      // Calculate stats excluding winners
-      const totalCustomers = customersData.length;
-      const nonWinnerCustomers = customersData.filter(customer => !winnerCustomerIds.has(customer.id));
-      const nonWinnerPaidThisMonth = nonWinnerCustomers.filter(customer => paidCustomerIds.has(customer.id)).length;
-      const unpaidThisMonth = nonWinnerCustomers.length - nonWinnerPaidThisMonth;
+      // Calculate stats - use active customers (exclude only if they won BEFORE this month)
+      const activeCustomers = customersData.filter(customer => {
+        const winnerMonth = winnerMap.get(customer.id);
+        if (!winnerMonth) {
+          // Customer is not a winner, so they're active
+          return true;
+        }
+        // Customer is a winner, check if they won before this month
+        // If they won before this month, exclude them (they're no longer active)
+        // If they won in this month or later, include them (they're still active)
+        return winnerMonth >= monthYear;
+      });
+      const totalActiveCustomers = activeCustomers.length;
+      
+      // Count active customers who paid
+      const paidThisMonth = activeCustomers.filter(customer => paidCustomerIds.has(customer.id)).length;
+      
+      // Count active customers who didn't pay
+      const unpaidThisMonth = activeCustomers.filter(customer => !paidCustomerIds.has(customer.id)).length;
+      
       const totalCollected = monthPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
       
-      return {
-        totalCustomers,
+      const stats = {
+        totalCustomers: totalActiveCustomers,
         unpaidThisMonth,
-        paidThisMonth: nonWinnerPaidThisMonth,
+        paidThisMonth,
         totalCollected
       };
+      
+      console.log('Dashboard: Calculated stats:', stats);
+      return stats;
     }
 
     // Update card with count-up animation
@@ -618,13 +812,59 @@
     function setupMonthSelectorListener() {
       const monthSelector = document.getElementById('monthSelector');
       if (monthSelector) {
-        monthSelector.addEventListener('change', function() {
+        console.log('Dashboard: Setting up month selector listener');
+        console.log('Dashboard: Current monthSelector.value before cloning:', monthSelector.value);
+        console.log('Dashboard: Current monthSelector.selectedIndex before cloning:', monthSelector.selectedIndex);
+        
+        // Store the current selection before cloning
+        const currentValue = monthSelector.value;
+        const currentSelectedIndex = monthSelector.selectedIndex;
+        
+        // Remove any existing event listeners by cloning the element
+        const newMonthSelector = monthSelector.cloneNode(true);
+        monthSelector.parentNode.replaceChild(newMonthSelector, monthSelector);
+        
+        // Restore the selection after cloning
+        if (currentValue) {
+          newMonthSelector.value = currentValue;
+          console.log('Dashboard: Restored selection after cloning:', currentValue);
+        }
+        
+        // Add the event listener to the new element
+        newMonthSelector.addEventListener('change', function() {
           selectedMonthYear = this.value;
           console.log('Dashboard: Month changed to:', selectedMonthYear);
           updateDashboardCards();
         });
+        
+        console.log('Dashboard: Month selector listener setup complete');
+        console.log('Dashboard: Final monthSelector.value after setup:', newMonthSelector.value);
+      } else {
+        console.log('Dashboard: ❌ Month selector element not found for listener setup');
       }
     }
+
+    // Debug function - call from browser console: debugDashboard()
+    window.debugDashboard = function() {
+      console.log('=== DASHBOARD DEBUG INFO ===');
+      console.log('Selected Scheme ID:', localStorage.getItem('selectedSchemeId'));
+      console.log('Selected Month Year:', selectedMonthYear);
+      console.log('Customers Data:', customersData);
+      console.log('Payments Data:', paymentsData);
+      console.log('Winners Data:', winnersData);
+      
+      if (selectedMonthYear) {
+        const monthPayments = paymentsData.filter(payment => payment.month_year === selectedMonthYear);
+        console.log('Payments for selected month (' + selectedMonthYear + '):', monthPayments);
+        
+        const paidCustomerIds = new Set(monthPayments.map(payment => payment.customer_id));
+        console.log('Paid Customer IDs:', Array.from(paidCustomerIds));
+        
+        const totalCollected = monthPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
+        console.log('Total Collected:', totalCollected);
+      }
+      console.log('============================');
+    };
 
     // Smooth navigation
     (function() {
@@ -644,12 +884,55 @@
       });
     })();
 
+
     // Navigation function for total customers card
     function navigateToCustomers() {
       if (window.electronAPI && window.electronAPI.navigation) {
         window.electronAPI.navigation.navigateTo('pages/customers.html');
       } else {
         window.location.href = 'customers.html';
+      }
+    }
+
+    // Scheme indicator functions
+    function showSchemeIndicator(schemePrefix) {
+      const indicator = document.getElementById('schemeIndicator');
+      const schemeNameSpan = document.getElementById('currentSchemeName');
+      if (indicator && schemeNameSpan) {
+        schemeNameSpan.textContent = schemePrefix;
+        indicator.classList.remove('hidden');
+      }
+    }
+
+    function hideSchemeIndicator() {
+      const indicator = document.getElementById('schemeIndicator');
+      if (indicator) {
+        indicator.classList.add('hidden');
+      }
+    }
+
+    function switchScheme() {
+      window.location.href = 'scheme-selection.html';
+    }
+
+    // Load and show selected scheme indicator
+    async function loadSelectedSchemeIndicator() {
+      try {
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        if (selectedSchemeId && window.electronAPI && window.electronAPI.schemes) {
+          const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+          if (result.success && result.scheme) {
+            showSchemeIndicator(result.scheme.prefix);
+            // Note: Month options are already generated in loadDashboardData()
+          } else {
+            hideSchemeIndicator();
+          }
+        } else {
+          hideSchemeIndicator();
+        }
+      } catch (error) {
+        console.error('Error loading selected scheme:', error);
+        hideSchemeIndicator();
       }
     }
   </script>

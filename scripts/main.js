@@ -96,7 +96,7 @@ app.on('web-contents-created', (event, contents) => {
     
     // Allow navigation to our local HTML files
     if (parsedUrl.protocol === 'file:') {
-      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html', 'pages/settings.html', 'pages/transactions.html', 'pages/winners.html'];
+      const allowedFiles = ['pages/index.html', 'pages/login.html', 'pages/scheme-selection.html', 'pages/dashboard.html', 'pages/add-customer.html', 'pages/add-payment.html', 'pages/customer.html', 'pages/customers.html', 'pages/unpaid.html', 'pages/settings.html', 'pages/transactions.html', 'pages/winners.html'];
       const filePath = parsedUrl.pathname;
       
       if (allowedFiles.some(file => filePath.endsWith(file))) {
@@ -277,16 +277,22 @@ ipcMain.handle('customer-add', async (event, customerData) => {
   }
 });
 
-ipcMain.handle('customer-get-all', async (event) => {
-  console.log('IPC: customer-get-all handler called');
+ipcMain.handle('customer-get-all', async (event, schemeId = null) => {
+  console.log('IPC: customer-get-all handler called for scheme:', schemeId);
   try {
     if (!authService || !authService.db) {
       console.error('IPC: Database service not initialized');
       throw new Error('Database service not initialized');
     }
     
-    console.log('IPC: Getting all customers');
-    const customers = await authService.db.getCustomers();
+    let customers;
+    if (schemeId) {
+      console.log('IPC: Getting customers for scheme:', schemeId);
+      customers = await authService.db.getCustomersByScheme(schemeId);
+    } else {
+      console.log('IPC: Getting all customers');
+      customers = await authService.db.getCustomers();
+    }
     console.log('IPC: All customers found:', customers.length);
     
     return {
@@ -418,16 +424,22 @@ ipcMain.handle('payment-get-by-customer', async (event, customerId) => {
   }
 });
 
-ipcMain.handle('payment-get-all', async (event) => {
-  console.log('IPC: payment-get-all handler called');
+ipcMain.handle('payment-get-all', async (event, schemeId = null) => {
+  console.log('IPC: payment-get-all handler called for scheme:', schemeId);
   try {
     if (!authService || !authService.db) {
       console.error('IPC: Database service not initialized for payments');
       throw new Error('Database service not initialized');
     }
     
-    console.log('IPC: Getting all payments');
-    const payments = await authService.db.getAllPayments();
+    let payments;
+    if (schemeId) {
+      console.log('IPC: Getting payments for scheme:', schemeId);
+      payments = await authService.db.getPaymentsByScheme(schemeId);
+    } else {
+      console.log('IPC: Getting all payments');
+      payments = await authService.db.getAllPayments();
+    }
     console.log('IPC: All payments found:', payments.length);
     
     return {
@@ -443,16 +455,16 @@ ipcMain.handle('payment-get-all', async (event) => {
   }
 });
 
-ipcMain.handle('transactions-get-by-date', async (event, paymentDate) => {
-  console.log('IPC: transactions-get-by-date handler called for date:', paymentDate);
+ipcMain.handle('transactions-get-by-date', async (event, paymentDate, schemeId = null) => {
+  console.log('IPC: transactions-get-by-date handler called for date:', paymentDate, 'scheme:', schemeId);
   try {
     if (!authService || !authService.db) {
       console.error('IPC: Database service not initialized for transactions by date');
       throw new Error('Database service not initialized');
     }
 
-    console.log('IPC: Getting transactions for date:', paymentDate);
-    const transactions = await authService.db.getPaymentsByDate(paymentDate);
+    console.log('IPC: Getting transactions for date:', paymentDate, 'scheme:', schemeId);
+    const transactions = await authService.db.getPaymentsByDate(paymentDate, schemeId);
     console.log('IPC: Transactions found:', transactions.length);
 
     return {
@@ -502,8 +514,8 @@ ipcMain.handle('winners-add', async (event, winnerData) => {
       throw new Error('Database service not initialized');
     }
 
-    const { customerId, monthYear, goldRate, winningAmount, position } = winnerData;
-    const winner = await authService.db.addWinner(customerId, monthYear, goldRate, winningAmount, position);
+    const { customerId, schemeId, monthYear, goldRate, winningAmount, position } = winnerData;
+    const winner = await authService.db.addWinner(customerId, schemeId, monthYear, goldRate, winningAmount, position);
     
     return {
       success: true,
@@ -518,15 +530,22 @@ ipcMain.handle('winners-add', async (event, winnerData) => {
   }
 });
 
-ipcMain.handle('winners-get-all', async (event) => {
-  console.log('IPC: winners-get-all handler called');
+ipcMain.handle('winners-get-all', async (event, schemeId = null) => {
+  console.log('IPC: winners-get-all handler called for scheme:', schemeId);
   try {
     if (!authService || !authService.db) {
       console.error('IPC: Database service not initialized for getting winners');
       throw new Error('Database service not initialized');
     }
 
-    const winners = await authService.db.getAllWinners();
+    let winners;
+    if (schemeId) {
+      console.log('IPC: Getting winners for scheme:', schemeId);
+      winners = await authService.db.getWinnersByScheme(schemeId);
+    } else {
+      console.log('IPC: Getting all winners');
+      winners = await authService.db.getAllWinners();
+    }
     
     return {
       success: true,
@@ -541,15 +560,24 @@ ipcMain.handle('winners-get-all', async (event) => {
   }
 });
 
-ipcMain.handle('winners-get-available-months', async (event) => {
-  console.log('IPC: winners-get-available-months handler called');
+ipcMain.handle('winners-get-available-months', async (event, schemeId = null) => {
+  console.log('IPC: winners-get-available-months handler called for scheme:', schemeId);
+  console.log('IPC: schemeId type:', typeof schemeId);
+  console.log('IPC: schemeId value:', JSON.stringify(schemeId));
+  
   try {
     if (!authService || !authService.db) {
       console.error('IPC: Database service not initialized for getting available months');
       throw new Error('Database service not initialized');
     }
 
-    const availableMonths = await authService.db.getAvailableMonths();
+    // If no schemeId provided, try to get it from the request context
+    if (!schemeId) {
+      console.log('IPC: No scheme ID provided, this will return empty array');
+    }
+
+    const availableMonths = await authService.db.getAvailableMonths(schemeId);
+    console.log('IPC: Available months result:', availableMonths);
     
     return {
       success: true,
@@ -612,19 +640,136 @@ ipcMain.handle('delivery-get-by-winner', async (event, winnerId) => {
   }
 });
 
-ipcMain.handle('dashboard-stats', async (event) => {
+ipcMain.handle('dashboard-stats', async (event, schemeId = null) => {
   try {
     if (!authService || !authService.db) {
       throw new Error('Database service not initialized');
     }
     
-    const stats = await authService.db.getDashboardStats();
+    console.log('IPC: dashboard-stats handler called for scheme:', schemeId);
+    const stats = await authService.db.getDashboardStats(schemeId);
     return {
       success: true,
       stats: stats
     };
   } catch (error) {
     console.error('Get dashboard stats error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// Scheme IPC handlers
+ipcMain.handle('schemes-add', async (event, schemeData) => {
+  console.log('IPC: schemes-add handler called:', schemeData);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for adding scheme');
+      throw new Error('Database service not initialized');
+    }
+
+    const scheme = await authService.db.addScheme(schemeData);
+    
+    return {
+      success: true,
+      scheme: scheme
+    };
+  } catch (error) {
+    console.error('IPC: Add scheme error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('schemes-get-all', async (event) => {
+  console.log('IPC: schemes-get-all handler called');
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for getting schemes');
+      throw new Error('Database service not initialized');
+    }
+
+    const schemes = await authService.db.getAllSchemes();
+    
+    return {
+      success: true,
+      schemes: schemes
+    };
+  } catch (error) {
+    console.error('IPC: Get schemes error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('schemes-get-by-id', async (event, schemeId) => {
+  console.log('IPC: schemes-get-by-id handler called for scheme:', schemeId);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for getting scheme');
+      throw new Error('Database service not initialized');
+    }
+
+    const scheme = await authService.db.getSchemeById(schemeId);
+    
+    return {
+      success: true,
+      scheme: scheme
+    };
+  } catch (error) {
+    console.error('IPC: Get scheme error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('schemes-update', async (event, schemeId, schemeData) => {
+  console.log('IPC: schemes-update handler called for scheme:', schemeId, schemeData);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for updating scheme');
+      throw new Error('Database service not initialized');
+    }
+
+    const scheme = await authService.db.updateScheme(schemeId, schemeData);
+    
+    return {
+      success: true,
+      scheme: scheme
+    };
+  } catch (error) {
+    console.error('IPC: Update scheme error:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('schemes-delete', async (event, schemeId) => {
+  console.log('IPC: schemes-delete handler called for scheme:', schemeId);
+  try {
+    if (!authService || !authService.db) {
+      console.error('IPC: Database service not initialized for deleting scheme');
+      throw new Error('Database service not initialized');
+    }
+
+    const result = await authService.db.deleteScheme(schemeId);
+    
+    return {
+      success: true,
+      result: result
+    };
+  } catch (error) {
+    console.error('IPC: Delete scheme error:', error.message);
     return {
       success: false,
       error: error.message
@@ -643,44 +788,22 @@ ipcMain.handle('navigate-to', (event, targetPath) => {
 });
 
 // Customer Code Generation Handler
-ipcMain.handle('get-next-customer-code', async (event) => {
+ipcMain.handle('get-next-customer-code', async (event, schemeId = null) => {
   try {
     if (!authService || !authService.db) {
       throw new Error('Database service not initialized');
     }
     
-    console.log('IPC: Getting next customer code');
-    const customers = await authService.db.getCustomers();
+    console.log('IPC: Getting next customer code for scheme:', schemeId);
     
-    // Extract numbers from existing customer codes
-    const existingNumbers = customers
-      .map(customer => customer.customer_code)
-      .filter(code => code && code.includes('GD7'))
-      .map(code => {
-        // Handle both 'GD7-1' and 'GD7- 1' formats
-        const number = code.replace(/GD7-?\s*/, '').trim();
-        return parseInt(number);
-      })
-      .filter(num => !isNaN(num))
-      .sort((a, b) => a - b);
+    // Use the database method to generate customer code
+    const customerCode = await authService.db.generateCustomerCode(schemeId);
     
-    // Find next available number
-    let nextNumber = 1;
-    for (const num of existingNumbers) {
-      if (num === nextNumber) {
-        nextNumber++;
-      } else {
-        break;
-      }
-    }
-    
-    const nextCode = `GD7-${nextNumber}`;
-    console.log('IPC: Next customer code:', nextCode);
+    console.log('IPC: Generated customer code:', customerCode);
     
     return {
       success: true,
-      nextCode: nextCode,
-      nextNumber: nextNumber
+      nextCode: customerCode
     };
   } catch (error) {
     console.error('IPC: Get next customer code error:', error.message);

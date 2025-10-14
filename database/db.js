@@ -5,7 +5,14 @@ require('dotenv').config();
 
 class Database {
   constructor() {
+    // Singleton pattern - only one instance allowed
+    if (Database.instance) {
+      return Database.instance;
+    }
+    
     this.db = null;
+    this.isInitialized = false;
+    
     // Check if we're in development or built version
     const isDev = process.env.NODE_ENV === 'development' || !require('electron').app.isPackaged;
     
@@ -21,7 +28,18 @@ class Database {
       // Copy the database from resources to userData if it doesn't exist
       this.ensureDatabaseExists();
     }
+    
+    Database.instance = this;
   }
+
+  // Get singleton instance
+  static getInstance() {
+    if (!Database.instance) {
+      Database.instance = new Database();
+    }
+    return Database.instance;
+  }
+
   
   // Ensure database exists in built version
   async ensureDatabaseExists() {
@@ -44,13 +62,20 @@ class Database {
 
   // Initialize database connection
   async init() {
+    if (this.isInitialized && this.db) {
+      console.log('Database: Already initialized, returning existing connection');
+      return Promise.resolve();
+    }
+    
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
+      this.db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
         if (err) {
           console.error('Error opening database:', err.message);
           reject(err);
         } else {
           console.log('Connected to SQLite database');
+          
+          this.isInitialized = true;
           this.createTables().then(resolve).catch(reject);
         }
       });
@@ -73,17 +98,32 @@ class Database {
         )
       `;
 
+      const createSchemesTable = `
+        CREATE TABLE IF NOT EXISTS schemes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          prefix TEXT UNIQUE NOT NULL,
+          start_date DATE NOT NULL,
+          duration INTEGER NOT NULL,
+          amounts TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
       const createCustomersTable = `
         CREATE TABLE IF NOT EXISTS customers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          customer_code TEXT UNIQUE NOT NULL,
+          scheme_id INTEGER,
+          customer_code TEXT NOT NULL,
           name TEXT NOT NULL,
           phone TEXT NOT NULL,
           address TEXT NOT NULL,
           start_date DATE NOT NULL,
           monthly_amount DECIMAL(10,2) NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (scheme_id) REFERENCES schemes (id) ON DELETE CASCADE
         )
       `;
 
@@ -91,6 +131,7 @@ class Database {
         CREATE TABLE IF NOT EXISTS payments (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           customer_id INTEGER NOT NULL,
+          scheme_id INTEGER NOT NULL,
           amount DECIMAL(10,2) NOT NULL,
           payment_date DATE NOT NULL,
           month_year TEXT NOT NULL,
@@ -98,7 +139,8 @@ class Database {
           transaction_id TEXT,
           notes TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (customer_id) REFERENCES customers (id)
+          FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
+          FOREIGN KEY (scheme_id) REFERENCES schemes (id) ON DELETE CASCADE
         )
       `;
 
@@ -106,6 +148,7 @@ class Database {
         CREATE TABLE IF NOT EXISTS winners (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           customer_id INTEGER NOT NULL,
+          scheme_id INTEGER NOT NULL,
           month_year TEXT NOT NULL,
           gold_rate DECIMAL(10,2) NOT NULL,
           winning_amount DECIMAL(10,2) NOT NULL,
@@ -113,6 +156,7 @@ class Database {
           is_delivered BOOLEAN DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (customer_id) REFERENCES customers (id) ON DELETE CASCADE,
+          FOREIGN KEY (scheme_id) REFERENCES schemes (id) ON DELETE CASCADE,
           UNIQUE(customer_id, month_year)
         )
       `;
@@ -131,6 +175,7 @@ class Database {
 
       this.db.serialize(() => {
         this.db.run(createUsersTable);
+        this.db.run(createSchemesTable);
         this.db.run(createCustomersTable);
         this.db.run(createPaymentsTable);
         this.db.run(createWinnersTable);
@@ -181,15 +226,116 @@ class Database {
                 console.log('customer_code column added successfully');
                 // Now populate existing records with generated codes
                 this.populateExistingCustomerCodes().then(() => {
-                  resolve();
+                  this.handleSchemeMigration().then(resolve).catch(reject);
                 }).catch(reject);
               }
             });
           } else {
             console.log('customer_code column already exists');
-            resolve();
+            this.handleSchemeMigration().then(resolve).catch(reject);
           }
         });
+      });
+    });
+  }
+
+  // Handle scheme migration
+  async handleSchemeMigration() {
+    return new Promise((resolve, reject) => {
+      // Check if scheme_id column exists in customers table
+      this.db.all("PRAGMA table_info(customers)", (err, columns) => {
+        if (err) {
+          console.error('Error getting table columns:', err.message);
+          reject(err);
+          return;
+        }
+
+        const hasSchemeIdInCustomers = columns.some(col => col.name === 'scheme_id');
+        
+        if (!hasSchemeIdInCustomers) {
+          console.log('Adding scheme_id column to customers table...');
+          
+          // Add scheme_id column to customers table (without creating default scheme)
+          this.db.run("ALTER TABLE customers ADD COLUMN scheme_id INTEGER", (err) => {
+            if (err) {
+              console.error('Error adding scheme_id column:', err.message);
+              reject(err);
+            } else {
+              console.log('scheme_id column added to customers successfully');
+              // Continue with other migrations
+              this.migratePaymentsAndWinners().then(resolve).catch(reject);
+            }
+          });
+        } else {
+          console.log('scheme_id column already exists in customers');
+          // Check other tables
+          this.migratePaymentsAndWinners().then(resolve).catch(reject);
+        }
+      });
+    });
+  }
+
+  async migratePaymentsAndWinners() {
+    return new Promise((resolve, reject) => {
+      // Check payments table
+      this.db.all("PRAGMA table_info(payments)", (err, columns) => {
+        if (err) {
+          console.error('Error getting payments table columns:', err.message);
+          reject(err);
+          return;
+        }
+
+        const hasSchemeIdInPayments = columns.some(col => col.name === 'scheme_id');
+        
+        if (!hasSchemeIdInPayments) {
+          console.log('Adding scheme_id column to payments table...');
+          
+          this.db.run("ALTER TABLE payments ADD COLUMN scheme_id INTEGER", (err) => {
+            if (err) {
+              console.error('Error adding scheme_id to payments:', err.message);
+              reject(err);
+            } else {
+              console.log('scheme_id column added to payments successfully');
+              // Continue with winners
+              this.migrateWinnersTable().then(resolve).catch(reject);
+            }
+          });
+        } else {
+          console.log('scheme_id column already exists in payments');
+          this.migrateWinnersTable().then(resolve).catch(reject);
+        }
+      });
+    });
+  }
+
+  async migrateWinnersTable() {
+    return new Promise((resolve, reject) => {
+      // Check winners table
+      this.db.all("PRAGMA table_info(winners)", (err, columns) => {
+        if (err) {
+          console.error('Error getting winners table columns:', err.message);
+          reject(err);
+          return;
+        }
+
+        const hasSchemeIdInWinners = columns.some(col => col.name === 'scheme_id');
+        
+        if (!hasSchemeIdInWinners) {
+          console.log('Adding scheme_id column to winners table...');
+          
+          this.db.run("ALTER TABLE winners ADD COLUMN scheme_id INTEGER", (err) => {
+            if (err) {
+              console.error('Error adding scheme_id to winners:', err.message);
+              reject(err);
+            } else {
+              console.log('scheme_id column added to winners successfully');
+              resolve();
+            }
+          });
+        } else {
+          console.log('scheme_id column already exists in winners');
+          resolve();
+        }
       });
     });
   }
@@ -357,89 +503,109 @@ class Database {
   }
 
   // Generate unique customer code
-  async generateCustomerCode() {
+  async generateCustomerCode(schemeId = null) {
     return new Promise((resolve, reject) => {
-      const prefix = process.env.CUSTOMER_CODE_PREFIX || 'GD7';
-      console.log('Generating customer code with prefix:', prefix);
-      
-      // Get the last customer code
-      this.db.get(
-        'SELECT customer_code FROM customers WHERE customer_code LIKE ? ORDER BY id DESC LIMIT 1',
-        [`${prefix}%`],
-        (err, row) => {
+      // If schemeId is provided, get the scheme prefix
+      if (schemeId) {
+        this.db.get('SELECT prefix FROM schemes WHERE id = ?', [schemeId], (err, scheme) => {
           if (err) {
             reject(err);
             return;
           }
-
-          let nextNumber = 1;
-          if (row) {
-            // Extract number from existing code (e.g., GD7001 -> 1)
-            const match = row.customer_code.match(/\d+$/);
-            if (match) {
-              nextNumber = parseInt(match[0]) + 1;
-            }
-          }
-
-          // Format with leading zeros (e.g., 1 -> 001)
-          const formattedNumber = nextNumber.toString().padStart(3, '0');
-          const customerCode = `${prefix} ${formattedNumber}`;
           
-          resolve(customerCode);
-        }
-      );
+          if (!scheme) {
+            reject(new Error('Scheme not found'));
+            return;
+          }
+          
+          const prefix = scheme.prefix;
+          console.log('Generating customer code with scheme prefix:', prefix);
+          
+          // Get the last customer code for this scheme
+          this.db.get(
+            'SELECT customer_code FROM customers WHERE customer_code LIKE ? AND scheme_id = ? ORDER BY id DESC LIMIT 1',
+            [`${prefix}-%`, schemeId],
+            (err, row) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              let nextNumber = 1;
+              if (row) {
+                // Extract number from existing code (e.g., GD7-1 -> 1)
+                const match = row.customer_code.match(/-(\d+)$/);
+                if (match) {
+                  nextNumber = parseInt(match[1]) + 1;
+                }
+              }
+              
+              const customerCode = `${prefix}-${nextNumber}`;
+              console.log('Generated customer code:', customerCode);
+              resolve(customerCode);
+            }
+          );
+        });
+      } else {
+        // Fallback to default prefix for backward compatibility
+        const prefix = process.env.CUSTOMER_CODE_PREFIX || 'GD7';
+        console.log('Generating customer code with default prefix:', prefix);
+        
+        // Get the last customer code
+        this.db.get(
+          'SELECT customer_code FROM customers WHERE customer_code LIKE ? ORDER BY id DESC LIMIT 1',
+          [`${prefix}%`],
+          (err, row) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            let nextNumber = 1;
+            if (row) {
+              // Extract number from existing code (e.g., GD7001 -> 1)
+              const match = row.customer_code.match(/\d+$/);
+              if (match) {
+                nextNumber = parseInt(match[0]) + 1;
+              }
+            }
+
+            // Format with leading zeros (e.g., 1 -> 001)
+            const formattedNumber = nextNumber.toString().padStart(3, '0');
+            const customerCode = `${prefix}${formattedNumber}`;
+            
+            console.log('Generated customer code:', customerCode);
+            resolve(customerCode);
+          }
+        );
+      }
     });
   }
 
   // Add new customer
   async addCustomer(customerData) {
+    console.log('Database: Starting customer addition process');
+    
+    // Ensure database is initialized
+    if (!this.isInitialized) {
+      console.log('Database: Not initialized, initializing now...');
+      await this.init();
+    }
+
     return new Promise(async (resolve, reject) => {
       try {
         console.log('Database: Adding customer with data:', customerData);
         
-        // Strict input validation
+        // Basic validation
         if (!customerData || typeof customerData !== 'object') {
           throw new Error('Customer data is required and must be an object');
         }
 
-        const { customer_code, name, phone, address, start_date, monthly_amount } = customerData;
-
-        // Validate customer code if provided
-        if (customer_code && (typeof customer_code !== 'string' || customer_code.trim().length === 0)) {
-          throw new Error('Customer code must be a non-empty string');
-        }
-
-        // Validate customer code format if provided
-        if (customer_code) {
-          const codeMatch = customer_code.match(/^GD7-(\d+)$/);
-          if (!codeMatch) {
-            throw new Error('Customer code must be in format GD7-XXX');
-          }
-          const codeNumber = parseInt(codeMatch[1]);
-          if (codeNumber < 1 || codeNumber > 2000) {
-            throw new Error('Customer code number must be between 1 and 2000');
-          }
-        }
+        const { customer_code, name, phone, address, start_date, monthly_amount, scheme_id } = customerData;
 
         // Validate required fields
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          throw new Error('Customer name is required and must be a non-empty string');
-        }
-
-        if (!phone || typeof phone !== 'string' || phone.trim().length === 0) {
-          throw new Error('Phone number is required and must be a non-empty string');
-        }
-
-        if (!address || typeof address !== 'string' || address.trim().length === 0) {
-          throw new Error('Address is required and must be a non-empty string');
-        }
-
-        if (!start_date || typeof start_date !== 'string' || start_date.trim().length === 0) {
-          throw new Error('Start date is required and must be a valid date string');
-        }
-
-        if (!monthly_amount || typeof monthly_amount !== 'number' || monthly_amount <= 0) {
-          throw new Error('Monthly amount is required and must be a positive number');
+        if (!name || !phone || !address || !start_date || !monthly_amount) {
+          throw new Error('All required fields must be provided');
         }
 
         // Sanitize inputs
@@ -449,77 +615,56 @@ class Database {
           phone: phone.trim(),
           address: address.trim(),
           start_date: start_date.trim(),
-          monthly_amount: parseFloat(monthly_amount)
+          monthly_amount: parseFloat(monthly_amount),
+          scheme_id: scheme_id ? parseInt(scheme_id) : null
         };
 
-        // Additional validation
-        if (sanitizedData.name.length < 2 || sanitizedData.name.length > 100) {
-          throw new Error('Customer name must be between 2 and 100 characters');
-        }
-
-        if (!/^[\d\s\-\+\(\)]+$/.test(sanitizedData.phone)) {
-          throw new Error('Phone number contains invalid characters');
-        }
-
-        if (sanitizedData.phone.length < 10 || sanitizedData.phone.length > 15) {
-          throw new Error('Phone number must be between 10 and 15 characters');
-        }
-
-        if (sanitizedData.address.length < 10 || sanitizedData.address.length > 200) {
-          throw new Error('Address must be between 10 and 200 characters');
-        }
-
-        // Validate date format
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(sanitizedData.start_date)) {
-          throw new Error('Start date must be in YYYY-MM-DD format');
-        }
-
-        // Validate date is not in the future
-        const startDate = new Date(sanitizedData.start_date);
-        const today = new Date();
-        if (startDate > today) {
-          throw new Error('Start date cannot be in the future');
-        }
-
-        if (sanitizedData.monthly_amount < 100 || sanitizedData.monthly_amount > 100000) {
-          throw new Error('Monthly amount must be between ₹100 and ₹100,000');
-        }
-
-        // Phone number uniqueness check removed - same user can have multiple accounts with same number
-
-        // Check for duplicate customer code
-        const existingCode = await this.getCustomerByCode(sanitizedData.customer_code);
-        if (existingCode) {
-          throw new Error('A customer with this code already exists');
-        }
-        
         // Use provided customer code or generate one
         const customerCode = sanitizedData.customer_code || await this.generateCustomerCode();
         
         console.log('Database: Inserting customer with code:', customerCode);
-        this.db.run(
-          'INSERT INTO customers (customer_code, name, phone, address, start_date, monthly_amount) VALUES (?, ?, ?, ?, ?, ?)',
-          [customerCode, sanitizedData.name, sanitizedData.phone, sanitizedData.address, sanitizedData.start_date, sanitizedData.monthly_amount],
-          function(err) {
-            if (err) {
-              console.error('Database: Error inserting customer:', err);
-              reject(err);
-            } else {
-              console.log('Database: Customer inserted successfully with ID:', this.lastID);
-              resolve({ 
-                id: this.lastID, 
-                customer_code: customerCode,
-                ...customerData 
-              });
+        
+        // Store database reference to avoid context issues
+        const db = this.db;
+        
+        // Use transaction for atomicity
+        db.serialize(() => {
+          db.run('BEGIN TRANSACTION');
+          
+          db.run(
+            'INSERT INTO customers (customer_code, name, phone, address, start_date, monthly_amount, scheme_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [customerCode, sanitizedData.name, sanitizedData.phone, sanitizedData.address, sanitizedData.start_date, sanitizedData.monthly_amount, sanitizedData.scheme_id],
+            function(err) {
+              if (err) {
+                console.error('Database: Error inserting customer:', err);
+                db.run('ROLLBACK');
+                reject(err);
+              } else {
+                console.log('Database: Customer inserted successfully with ID:', this.lastID);
+                db.run('COMMIT', (commitErr) => {
+                  if (commitErr) {
+                    console.error('Database: Error committing transaction:', commitErr);
+                    reject(commitErr);
+                  } else {
+                    resolve({ 
+                      id: this.lastID, 
+                      customer_code: customerCode,
+                      ...customerData 
+                    });
+                  }
+                });
+              }
             }
-          }
-        );
+          );
+        });
+        
       } catch (error) {
+        console.error('Database: Customer addition failed:', error);
         reject(error);
       }
     });
   }
+
 
   // Get customer by phone number
   async getCustomerByPhone(phone) {
@@ -584,6 +729,36 @@ class Database {
     });
   }
 
+  // Get customers by scheme
+  async getCustomersByScheme(schemeId) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting customers for scheme:', schemeId);
+      console.log('Database: Database connection exists:', !!this.db);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        'SELECT * FROM customers WHERE scheme_id = ? ORDER BY created_at DESC',
+        [schemeId],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting customers for scheme:', err);
+            console.error('Database: Error details:', err.message, err.code);
+            reject(err);
+          } else {
+            console.log('Database: Found customers for scheme', schemeId, ':', rows.length);
+            console.log('Database: Customer rows:', rows);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
   // Check if customer code already exists
   async checkCustomerCodeExists(customerCode) {
     return new Promise((resolve, reject) => {
@@ -628,11 +803,11 @@ class Database {
   // Add payment
   async addPayment(paymentData) {
     return new Promise((resolve, reject) => {
-      const { customer_id, amount, payment_date, month_year, payment_method, transaction_id, notes } = paymentData;
+      const { customer_id, scheme_id, amount, payment_date, month_year, payment_method, transaction_id, notes } = paymentData;
       
       this.db.run(
-        'INSERT INTO payments (customer_id, amount, payment_date, month_year, payment_method, transaction_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [customer_id, amount, payment_date, month_year, payment_method, transaction_id, notes],
+        'INSERT INTO payments (customer_id, scheme_id, amount, payment_date, month_year, payment_method, transaction_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [customer_id, scheme_id, amount, payment_date, month_year, payment_method, transaction_id, notes],
         function(err) {
           if (err) {
             reject(err);
@@ -691,10 +866,39 @@ class Database {
     });
   }
 
-  // Get payments by date
-  async getPaymentsByDate(paymentDate) {
+  // Get payments by scheme
+  async getPaymentsByScheme(schemeId) {
     return new Promise((resolve, reject) => {
-      console.log('Database: Getting payments for date:', paymentDate);
+      console.log('Database: Getting payments for scheme:', schemeId);
+      console.log('Database: Database connection exists for payments:', !!this.db);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for payments');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        'SELECT * FROM payments WHERE scheme_id = ? ORDER BY payment_date DESC',
+        [schemeId],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting payments for scheme:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found payments for scheme', schemeId, ':', rows.length);
+            console.log('Database: Payment rows:', rows);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
+  // Get payments by date
+  async getPaymentsByDate(paymentDate, schemeId = null) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting payments for date:', paymentDate, 'scheme:', schemeId);
       
       if (!this.db) {
         console.error('Database: Database connection is null for payments by date');
@@ -702,23 +906,32 @@ class Database {
         return;
       }
       
-      this.db.all(
-        `SELECT p.*, c.name as customer_name, c.customer_code 
-         FROM payments p 
-         JOIN customers c ON p.customer_id = c.id 
-         WHERE DATE(p.payment_date) = DATE(?) 
-         ORDER BY p.payment_date DESC`,
-        [paymentDate],
-        (err, rows) => {
-          if (err) {
-            console.error('Database: Error getting payments by date:', err);
-            reject(err);
-          } else {
-            console.log('Database: Found payments for date:', rows.length);
-            resolve(rows);
-          }
+      let query, params;
+      if (schemeId) {
+        query = `SELECT p.*, c.name as customer_name, c.customer_code 
+                 FROM payments p 
+                 JOIN customers c ON p.customer_id = c.id 
+                 WHERE DATE(p.payment_date) = DATE(?) AND p.scheme_id = ?
+                 ORDER BY p.payment_date DESC`;
+        params = [paymentDate, schemeId];
+      } else {
+        query = `SELECT p.*, c.name as customer_name, c.customer_code 
+                 FROM payments p 
+                 JOIN customers c ON p.customer_id = c.id 
+                 WHERE DATE(p.payment_date) = DATE(?) 
+                 ORDER BY p.payment_date DESC`;
+        params = [paymentDate];
+      }
+      
+      this.db.all(query, params, (err, rows) => {
+        if (err) {
+          console.error('Database: Error getting payments by date:', err);
+          reject(err);
+        } else {
+          console.log('Database: Found payments for date:', rows.length);
+          resolve(rows);
         }
-      );
+      });
     });
   }
 
@@ -752,40 +965,59 @@ class Database {
     });
   }
 
-  // Get dashboard statistics
-  async getDashboardStats() {
+  // Get dashboard statistics for a specific scheme
+  async getDashboardStats(schemeId = null) {
     return new Promise((resolve, reject) => {
+      if (!schemeId) {
+        resolve({
+          totalCustomers: 0,
+          unpaidThisMonth: 0,
+          paidThisMonth: 0,
+          totalOutstanding: 0
+        });
+        return;
+      }
+
       const queries = {
-        totalCustomers: 'SELECT COUNT(*) as count FROM customers',
+        totalCustomers: 'SELECT COUNT(*) as count FROM customers WHERE scheme_id = ?',
         unpaidThisMonth: `SELECT COUNT(*) as count FROM customers c 
-                         WHERE NOT EXISTS (
+                         WHERE c.scheme_id = ? 
+                         AND NOT EXISTS (
                            SELECT 1 FROM payments p 
                            WHERE p.customer_id = c.id 
                            AND p.month_year = strftime('%Y-%m', 'now')
+                           AND p.scheme_id = ?
                          )
                          AND NOT EXISTS (
                            SELECT 1 FROM winners w 
                            WHERE w.customer_id = c.id
+                           AND w.scheme_id = ?
                          )`,
         paidThisMonth: `SELECT COUNT(*) as count FROM customers c 
-                       WHERE EXISTS (
+                       WHERE c.scheme_id = ?
+                       AND EXISTS (
                          SELECT 1 FROM payments p 
                          WHERE p.customer_id = c.id 
                          AND p.month_year = strftime('%Y-%m', 'now')
+                         AND p.scheme_id = ?
                        )
                        AND NOT EXISTS (
                          SELECT 1 FROM winners w 
                          WHERE w.customer_id = c.id
+                         AND w.scheme_id = ?
                        )`,
         totalOutstanding: `SELECT COALESCE(SUM(c.monthly_amount), 0) as total FROM customers c 
-                          WHERE NOT EXISTS (
+                          WHERE c.scheme_id = ?
+                          AND NOT EXISTS (
                             SELECT 1 FROM payments p 
                             WHERE p.customer_id = c.id 
                             AND p.month_year = strftime('%Y-%m', 'now')
+                            AND p.scheme_id = ?
                           )
                           AND NOT EXISTS (
                             SELECT 1 FROM winners w 
                             WHERE w.customer_id = c.id
+                            AND w.scheme_id = ?
                           )`
       };
 
@@ -793,18 +1025,236 @@ class Database {
       let completed = 0;
       const total = Object.keys(queries).length;
 
-      Object.entries(queries).forEach(([key, query]) => {
-        this.db.get(query, (err, row) => {
+      // Execute queries with appropriate parameters
+      this.db.get(queries.totalCustomers, [schemeId], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        results.totalCustomers = row.count || 0;
+        completed++;
+        if (completed === total) {
+          resolve(results);
+        }
+      });
+
+      this.db.get(queries.unpaidThisMonth, [schemeId, schemeId, schemeId], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        results.unpaidThisMonth = row.count || 0;
+        completed++;
+        if (completed === total) {
+          resolve(results);
+        }
+      });
+
+      this.db.get(queries.paidThisMonth, [schemeId, schemeId, schemeId], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        results.paidThisMonth = row.count || 0;
+        completed++;
+        if (completed === total) {
+          resolve(results);
+        }
+      });
+
+      this.db.get(queries.totalOutstanding, [schemeId, schemeId, schemeId], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        results.totalOutstanding = row.total || 0;
+        completed++;
+        if (completed === total) {
+          resolve(results);
+        }
+      });
+    });
+  }
+
+  // Scheme management functions
+  async addScheme(schemeData) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Adding scheme:', schemeData);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for adding scheme');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+
+      const { name, prefix, start_date, duration, amounts } = schemeData;
+      const amountsJson = JSON.stringify(amounts);
+
+      this.db.run(
+        'INSERT INTO schemes (name, prefix, start_date, duration, amounts) VALUES (?, ?, ?, ?, ?)',
+        [name, prefix, start_date, duration, amountsJson],
+        function(err) {
           if (err) {
+            console.error('Database: Error adding scheme:', err);
+            reject(err);
+          } else {
+            console.log('Database: Scheme added successfully with ID:', this.lastID);
+            resolve({ id: this.lastID, ...schemeData });
+          }
+        }
+      );
+    });
+  }
+
+  async getAllSchemes() {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting all schemes');
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting schemes');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        'SELECT * FROM schemes ORDER BY created_at DESC',
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting schemes:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found schemes:', rows.length);
+            // Parse amounts JSON for each scheme
+            const schemes = rows.map(scheme => ({
+              ...scheme,
+              amounts: JSON.parse(scheme.amounts)
+            }));
+            resolve(schemes);
+          }
+        }
+      );
+    });
+  }
+
+  async getSchemeById(schemeId) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting scheme by ID:', schemeId);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting scheme');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.get(
+        'SELECT * FROM schemes WHERE id = ?',
+        [schemeId],
+        (err, row) => {
+          if (err) {
+            console.error('Database: Error getting scheme:', err);
+            reject(err);
+          } else if (row) {
+            console.log('Database: Scheme found');
+            resolve({
+              ...row,
+              amounts: JSON.parse(row.amounts)
+            });
+          } else {
+            console.log('Database: Scheme not found');
+            resolve(null);
+          }
+        }
+      );
+    });
+  }
+
+  async updateScheme(schemeId, schemeData) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Updating scheme:', schemeId, schemeData);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for updating scheme');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+
+      const { name, prefix, start_date, duration, amounts } = schemeData;
+      const amountsJson = JSON.stringify(amounts);
+
+      this.db.run(
+        'UPDATE schemes SET name = ?, prefix = ?, start_date = ?, duration = ?, amounts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name, prefix, start_date, duration, amountsJson, schemeId],
+        function(err) {
+          if (err) {
+            console.error('Database: Error updating scheme:', err);
+            reject(err);
+          } else {
+            console.log('Database: Scheme updated successfully');
+            resolve({ id: schemeId, ...schemeData });
+          }
+        }
+      );
+    });
+  }
+
+  async deleteScheme(schemeId) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Deleting scheme:', schemeId);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for deleting scheme');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+
+      // Start transaction for cascade deletion
+      this.db.serialize(() => {
+        this.db.run('BEGIN TRANSACTION');
+        
+        // Delete related records first (in case cascade doesn't work due to table structure)
+        this.db.run('DELETE FROM payments WHERE scheme_id = ?', [schemeId], (err) => {
+          if (err) {
+            console.error('Database: Error deleting scheme payments:', err);
+            this.db.run('ROLLBACK');
             reject(err);
             return;
           }
-          
-          results[key] = row.count || row.total || 0;
-          completed++;
-          
-          if (completed === total) {
-            resolve(results);
+        });
+        
+        this.db.run('DELETE FROM winners WHERE scheme_id = ?', [schemeId], (err) => {
+          if (err) {
+            console.error('Database: Error deleting scheme winners:', err);
+            this.db.run('ROLLBACK');
+            reject(err);
+            return;
+          }
+        });
+        
+        this.db.run('DELETE FROM customers WHERE scheme_id = ?', [schemeId], (err) => {
+          if (err) {
+            console.error('Database: Error deleting scheme customers:', err);
+            this.db.run('ROLLBACK');
+            reject(err);
+            return;
+          }
+        });
+        
+        // Finally delete the scheme itself
+        this.db.run('DELETE FROM schemes WHERE id = ?', [schemeId], (err) => {
+          if (err) {
+            console.error('Database: Error deleting scheme:', err);
+            this.db.run('ROLLBACK');
+            reject(err);
+          } else {
+            console.log('Database: Scheme and all related data deleted successfully');
+            this.db.run('COMMIT', (commitErr) => {
+              if (commitErr) {
+                console.error('Database: Error committing transaction:', commitErr);
+                reject(commitErr);
+              } else {
+                resolve({ id: schemeId });
+              }
+            });
           }
         });
       });
@@ -914,9 +1364,9 @@ class Database {
   }
 
   // Winners methods
-  async addWinner(customerId, monthYear, goldRate, winningAmount, position) {
+  async addWinner(customerId, schemeId, monthYear, goldRate, winningAmount, position) {
     return new Promise((resolve, reject) => {
-      console.log('Database: Adding winner:', { customerId, monthYear, goldRate, winningAmount, position });
+      console.log('Database: Adding winner:', { customerId, schemeId, monthYear, goldRate, winningAmount, position });
       
       if (!this.db) {
         console.error('Database: Database connection is null for adding winner');
@@ -925,15 +1375,15 @@ class Database {
       }
       
       this.db.run(
-        'INSERT INTO winners (customer_id, month_year, gold_rate, winning_amount, position) VALUES (?, ?, ?, ?, ?)',
-        [customerId, monthYear, goldRate, winningAmount, position],
+        'INSERT INTO winners (customer_id, scheme_id, month_year, gold_rate, winning_amount, position) VALUES (?, ?, ?, ?, ?, ?)',
+        [customerId, schemeId, monthYear, goldRate, winningAmount, position],
         function(err) {
           if (err) {
             console.error('Database: Error adding winner:', err);
             reject(err);
           } else {
             console.log('Database: Winner added successfully with ID:', this.lastID);
-            resolve({ id: this.lastID, ...arguments[1] });
+            resolve({ id: this.lastID, customer_id: customerId, scheme_id: schemeId, month_year: monthYear, gold_rate: goldRate, winning_amount: winningAmount, position: position });
           }
         }
       );
@@ -972,42 +1422,98 @@ class Database {
     });
   }
 
-  async getAvailableMonths() {
+  async getWinnersByScheme(schemeId) {
     return new Promise((resolve, reject) => {
-      console.log('Database: Getting available months');
+      console.log('Database: Getting winners for scheme:', schemeId);
+      
+      if (!this.db) {
+        console.error('Database: Database connection is null for getting winners');
+        reject(new Error('Database connection is null'));
+        return;
+      }
+      
+      this.db.all(
+        `SELECT w.*, c.name as customer_name, c.customer_code,
+         COALESCE(SUM(d.amount), 0) as delivered_amount,
+         (w.winning_amount - COALESCE(SUM(d.amount), 0)) as remaining_balance
+         FROM winners w
+         JOIN customers c ON w.customer_id = c.id
+         LEFT JOIN deliveries d ON w.id = d.winner_id
+         WHERE w.scheme_id = ?
+         GROUP BY w.id
+         ORDER BY w.created_at DESC`,
+        [schemeId],
+        (err, rows) => {
+          if (err) {
+            console.error('Database: Error getting winners for scheme:', err);
+            reject(err);
+          } else {
+            console.log('Database: Found winners for scheme', schemeId, ':', rows.length);
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
+  async getAvailableMonths(schemeId = null) {
+    return new Promise((resolve, reject) => {
+      console.log('Database: Getting available months for scheme:', schemeId);
       
       if (!this.db) {
         console.error('Database: Database connection is null for getting available months');
         reject(new Error('Database connection is null'));
         return;
       }
-      
-      // Generate 30 months from default start date
-      const months = [];
-      const startDate = new Date('2024-12-15');
-      
-      for (let i = 0; i < 30; i++) {
-        const date = new Date(startDate);
-        date.setMonth(date.getMonth() + i);
-        const monthYear = date.toISOString().slice(0, 7);
-        months.push(monthYear);
+
+      if (!schemeId) {
+        console.log('Database: No scheme ID provided, returning empty array');
+        resolve([]);
+        return;
       }
-      
-      // Get months that already have winners
-      this.db.all(
-        'SELECT DISTINCT month_year FROM winners',
-        (err, rows) => {
-          if (err) {
-            console.error('Database: Error getting winner months:', err);
-            reject(err);
-          } else {
-            const winnerMonths = rows.map(row => row.month_year);
-            const availableMonths = months.filter(month => !winnerMonths.includes(month));
-            console.log('Database: Available months:', availableMonths.length);
-            resolve(availableMonths);
-          }
+
+      // Get scheme details to generate months from scheme start date and duration
+      this.db.get('SELECT start_date, duration FROM schemes WHERE id = ?', [schemeId], (err, scheme) => {
+        if (err) {
+          console.error('Database: Error getting scheme for available months:', err);
+          reject(err);
+          return;
         }
-      );
+
+        if (!scheme) {
+          console.log('Database: Scheme not found, returning empty array');
+          resolve([]);
+          return;
+        }
+
+        // Generate months from scheme start date for the scheme duration
+        const months = [];
+        const startDate = new Date(scheme.start_date);
+        
+        for (let i = 0; i < scheme.duration; i++) {
+          const date = new Date(startDate);
+          date.setMonth(date.getMonth() + i);
+          const monthYear = date.toISOString().slice(0, 7);
+          months.push(monthYear);
+        }
+        
+        // Get months that already have winners for this scheme
+        this.db.all(
+          'SELECT DISTINCT month_year FROM winners WHERE scheme_id = ?',
+          [schemeId],
+          (err, rows) => {
+            if (err) {
+              console.error('Database: Error getting winner months:', err);
+              reject(err);
+            } else {
+              const winnerMonths = rows.map(row => row.month_year);
+              const availableMonths = months.filter(month => !winnerMonths.includes(month));
+              console.log('Database: Available months for scheme', schemeId, ':', availableMonths.length);
+              resolve(availableMonths);
+            }
+          }
+        );
+      });
     });
   }
 

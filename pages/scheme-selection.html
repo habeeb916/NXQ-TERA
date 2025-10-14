@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSM-Tera | Select Scheme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../components/toast.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b'
+                        },
+                        success: '#10b981',
+                        danger: '#dc2626',
+                        warning: '#f59e0b'
+                    },
+                    boxShadow: {
+                        card: '0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15)'
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+        
+        .scheme-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .scheme-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(16,185,129,0.3), 0 8px 20px -6px rgba(0,0,0,0.2);
+        }
+        
+        .scheme-card:hover .scheme-prefix {
+            transform: scale(1.1);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(to bottom, #ecfdf5, #ffffff);
+            min-height: 100vh;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        .scheme-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scheme-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #059669, #047857);
+        }
+
+        .scheme-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15);
+            border-color: #10b981;
+        }
+
+        .scheme-prefix {
+            color: #10b981;
+            font-weight: 700;
+            font-size: 2.5rem;
+            letter-spacing: -0.025em;
+            transition: transform 0.3s ease;
+        }
+
+        .scheme-name {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .scheme-stats {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-item {
+            position: relative;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+
+        .stat-value {
+            color: #10b981;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .select-btn {
+            background: #10b981;
+            transition: all 0.3s ease;
+        }
+
+        .select-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .edit-btn, .delete-btn {
+            transition: all 0.2s ease;
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+        }
+
+        .edit-btn:hover {
+            background: #10b981;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .create-btn {
+            background: #10b981;
+            transition: all 0.3s ease;
+        }
+
+        .create-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .empty-state {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Custom scrollbar styling */
+        .overflow-y-auto::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modal styling */
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 20px -10px rgba(16,185,129,0.25), 0 4px 12px -6px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg transition-opacity duration-300 opacity-0">
+    
+    <!-- Header -->
+    <header class="py-8">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-slate-800 mb-2">HSM-Tera</h1>
+                <p class="text-lg text-slate-600">Select a scheme to continue</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 pb-12">
+        
+        <!-- Schemes Grid -->
+        <div id="schemesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
+            <!-- Schemes will be loaded here -->
+        </div>
+
+        <!-- Add New Scheme Button (Admin Only) -->
+        <div id="addSchemeSection" class="text-center">
+            <button id="addSchemeBtn" class="create-btn inline-flex items-center gap-2 text-white px-6 py-3 rounded-xl shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <span class="font-semibold">Create New Scheme</span>
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <div class="empty-state rounded-2xl p-8 shadow-lg">
+                <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800 mb-3">No Schemes Available</h3>
+                <p class="text-slate-600 mb-6 max-w-md mx-auto">Create your first scheme to get started with managing your chit fund operations.</p>
+                <button id="createFirstSchemeBtn" class="create-btn inline-flex items-center gap-2 text-white px-6 py-3 rounded-xl">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    <span class="font-semibold">Create First Scheme</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Scheme Modal -->
+    <div id="addSchemeModal" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-content rounded-2xl max-w-md w-full p-6 transform transition-all duration-300 scale-95 opacity-0 max-h-[90vh] overflow-y-auto" id="modalContent">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Create New Scheme</h2>
+                <button id="closeModal" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="schemeForm">
+                <div class="space-y-6">
+                    <!-- Scheme Name -->
+                    <div>
+                        <label for="schemeName" class="block text-sm font-semibold text-slate-700 mb-2">Scheme Name</label>
+                        <input type="text" id="schemeName" name="schemeName" required
+                               class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                               placeholder="e.g., Gold Scheme, Silver Scheme">
+                    </div>
+
+                    <!-- Prefix -->
+                    <div>
+                        <label for="schemePrefix" class="block text-sm font-semibold text-slate-700 mb-2">Customer ID Prefix</label>
+                        <input type="text" id="schemePrefix" name="schemePrefix" required
+                               class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                               placeholder="e.g., GD7, CH10, EM5" maxlength="10">
+                    </div>
+
+                    <!-- Start Date -->
+                    <div>
+                        <label for="schemeStartDate" class="block text-sm font-semibold text-slate-700 mb-2">Start Date</label>
+                        <div class="relative">
+                            <button type="button" id="schemeStartDatePickerBtn" 
+                                    class="w-full px-4 py-2 pr-12 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer text-left">
+                                <span id="selectedSchemeStartDateText">Select Date</span>
+                            </button>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <input type="hidden" id="schemeStartDate" name="schemeStartDate" required>
+                    </div>
+
+                    <!-- Duration -->
+                    <div>
+                        <label for="schemeDuration" class="block text-sm font-semibold text-slate-700 mb-2">Duration (Months)</label>
+                        <input type="number" id="schemeDuration" name="schemeDuration" required min="1" max="120" inputmode="numeric" pattern="[0-9]*"
+                               class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                               placeholder="30">
+                    </div>
+
+                    <!-- Amounts -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Amounts</label>
+                        <div class="border border-slate-300 rounded-xl p-2 min-h-[32px] bg-white">
+                            <div id="amountTags" class="flex flex-wrap gap-2 mb-1">
+                                <!-- Tags will be added here dynamically -->
+                            </div>
+                            <input type="text" id="amountInput" inputmode="numeric" pattern="[0-9]*"
+                                   class="w-full px-3 py-1 border-0 focus:outline-none focus:ring-0 text-slate-700">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Press Enter to add amount</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mt-8">
+                    <button type="button" id="cancelBtn" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-xl transition-colors">
+                        Create Scheme
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Calendar Modal -->
+    <div id="schemeStartCalendarModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-800">Select Start Date</h3>
+                        <button type="button" id="closeSchemeStartCalendar" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Selected Date Display -->
+                    <div id="selectedSchemeStartDateDisplay" class="mb-4 p-3 bg-slate-50 rounded-lg">
+                        <div class="text-sm text-slate-600 mb-1">Selected:</div>
+                        <div id="selectedSchemeStartDateTextModal" class="text-sm font-medium text-slate-800">Select Date</div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-3">
+                        <button type="button" id="prevSchemeStartMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <h4 id="currentSchemeStartMonthYear" class="text-lg font-semibold text-slate-800">October 2025</h4>
+                        <button type="button" id="nextSchemeStartMonth" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Sun</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Mon</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Tue</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Wed</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Thu</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Fri</div>
+                        <div class="text-center text-sm font-medium text-slate-500 py-2">Sat</div>
+                    </div>
+                    
+                    <div id="schemeStartCalendarDays" class="grid grid-cols-7 gap-1">
+                        <!-- Calendar days will be generated here -->
+                    </div>
+                    
+                    <div class="flex justify-end mt-6">
+                        <button type="button" id="selectSchemeStartDateBtn" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-brand-500/25">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let schemes = [];
+        let currentUser = null;
+
+        // Calendar variables
+        let selectedSchemeStartDate = new Date(Date.UTC(2025, 0, 1)); // Default to January 1st, 2025 in UTC
+        let schemeStartCurrentMonth = 0; // January (0-indexed)
+        let schemeStartCurrentYear = 2025;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fade in animation
+            document.body.classList.remove('opacity-0');
+            
+            // Check authentication
+            checkAuthentication();
+            
+            // Setup calendar
+            setupSchemeStartCalendar();
+        });
+
+        // Check authentication
+        async function checkAuthentication() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.auth.validateSession(token);
+                if (!result.valid) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = result.user;
+                loadSchemes();
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Load schemes
+        async function loadSchemes() {
+            try {
+                const result = await window.electronAPI.schemes.getAll();
+                if (result.success) {
+                    schemes = result.schemes;
+                    renderSchemes();
+                } else {
+                    showToast('Failed to load schemes: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading schemes:', error);
+                showToast('Error loading schemes', 'error');
+            }
+        }
+
+        // Render schemes
+        function renderSchemes() {
+            const grid = document.getElementById('schemesGrid');
+            const emptyState = document.getElementById('emptyState');
+            const addSchemeSection = document.getElementById('addSchemeSection');
+
+            if (schemes.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                addSchemeSection.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            addSchemeSection.classList.remove('hidden');
+
+            grid.innerHTML = schemes.map(scheme => `
+                <div class="scheme-card rounded-2xl p-6 shadow-lg fade-in relative group">
+                    <!-- Action Buttons -->
+                    <div class="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button onclick="editScheme(${scheme.id})" class="edit-btn bg-white hover:bg-brand-500 text-brand-600 hover:text-white shadow-sm" title="Edit Scheme">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteScheme(${scheme.id})" class="delete-btn bg-white hover:bg-red-500 text-red-600 hover:text-white shadow-sm" title="Delete Scheme">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="text-center" onclick="selectScheme(${scheme.id})" style="cursor: pointer;">
+                        <!-- Scheme Prefix -->
+                        <div class="mb-4">
+                            <span class="scheme-prefix">${scheme.prefix}</span>
+                        </div>
+                        
+                        <!-- Scheme Name -->
+                        <h3 class="scheme-name text-xl mb-3">${scheme.name}</h3>
+                        
+                        <!-- Scheme Stats -->
+                        <div class="scheme-stats rounded-xl p-3 mb-4">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="stat-item text-center">
+                                    <div class="stat-value text-base">${scheme.duration}</div>
+                                    <div class="stat-label">Months</div>
+                                </div>
+                                <div class="stat-item text-center">
+                                    <div class="stat-value text-base">${scheme.amounts.length}</div>
+                                    <div class="stat-label">Amounts</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Info -->
+                        <div class="space-y-1 text-xs text-slate-500 mb-4">
+                            <div class="flex items-center justify-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span>Started ${new Date(scheme.start_date).toLocaleDateString()}</span>
+                            </div>
+                            <div class="flex items-center justify-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                <span>₹${scheme.amounts.join(', ₹')}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Select Button -->
+                        <button class="select-btn text-white font-semibold py-2 px-6 rounded-xl w-full text-sm">
+                            Select Scheme
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select scheme
+        async function selectScheme(schemeId) {
+            try {
+                // Store selected scheme in localStorage
+                localStorage.setItem('selectedSchemeId', schemeId);
+                
+                // Navigate to dashboard
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                console.error('Error selecting scheme:', error);
+                showToast('Error selecting scheme', 'error');
+            }
+        }
+
+        // Delete scheme with warning
+        async function deleteScheme(schemeId) {
+            try {
+                // Get scheme details for warning
+                const schemeResult = await window.electronAPI.schemes.getById(schemeId);
+                if (!schemeResult.success) {
+                    showToast('Error getting scheme details', 'error');
+                    return;
+                }
+                
+                const scheme = schemeResult.scheme;
+                
+                // Show warning dialog
+                const confirmed = await showDeleteWarning(scheme);
+                if (!confirmed) {
+                    return;
+                }
+                
+                // Delete the scheme
+                const result = await window.electronAPI.schemes.delete(schemeId);
+                if (result.success) {
+                    showToast('Scheme deleted successfully!', 'success');
+                    await loadSchemes();
+                } else {
+                    showToast('Failed to delete scheme: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting scheme:', error);
+                showToast('Error deleting scheme', 'error');
+            }
+        }
+
+        // Edit scheme
+        async function editScheme(schemeId) {
+            try {
+                // Store the scheme ID being edited
+                localStorage.setItem('editingSchemeId', schemeId);
+                
+                // Get scheme details
+                const schemeResult = await window.electronAPI.schemes.getById(schemeId);
+                if (!schemeResult.success) {
+                    showToast('Error getting scheme details', 'error');
+                    return;
+                }
+                
+                const scheme = schemeResult.scheme;
+                
+                // Check if scheme has customers
+                const customersResult = await window.electronAPI.customer.getAll(schemeId);
+                const schemeCustomers = customersResult.customers || [];
+                
+                const hasCustomers = schemeCustomers.length > 0;
+                
+                // Show edit modal
+                showEditModal(scheme, hasCustomers);
+            } catch (error) {
+                console.error('Error editing scheme:', error);
+                showToast('Error loading scheme for editing', 'error');
+            }
+        }
+
+        // Show delete warning dialog
+        function showDeleteWarning(scheme) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-800">Delete Scheme</h3>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <p class="text-slate-600 mb-3">Are you sure you want to delete the scheme <strong>"${scheme.name}"</strong>?</p>
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p class="text-red-800 text-sm font-medium">⚠️ This will permanently delete:</p>
+                                <ul class="text-red-700 text-sm mt-1 ml-4">
+                                    <li>• The scheme itself</li>
+                                    <li>• All customers in this scheme</li>
+                                    <li>• All payments and transactions</li>
+                                    <li>• All winners and deliveries</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 justify-end">
+                            <button id="cancelDelete" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                Cancel
+                            </button>
+                            <button id="confirmDelete" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                                Delete Scheme
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Event listeners
+                document.getElementById('cancelDelete').onclick = () => {
+                    document.body.removeChild(modal);
+                    resolve(false);
+                };
+                
+                document.getElementById('confirmDelete').onclick = () => {
+                    document.body.removeChild(modal);
+                    resolve(true);
+                };
+                
+                // Close on backdrop click
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                        resolve(false);
+                    }
+                };
+            });
+        }
+
+        // Show edit modal
+        function showEditModal(scheme, hasCustomers) {
+            const modal = document.createElement('div');
+            modal.id = 'editSchemeModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto';
+            
+            // Determine which fields are editable
+            const canEditAll = !hasCustomers;
+            
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-6 max-w-md mx-4 w-full shadow-2xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold text-slate-800">Edit Scheme</h3>
+                        <button onclick="hideEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    ${hasCustomers ? `
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                            <p class="text-blue-800 text-sm">📝 This scheme has customers. Only name and prefix can be edited.</p>
+                        </div>
+                    ` : ''}
+                    
+                    <form id="editSchemeForm">
+                        <!-- Scheme Name -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Scheme Name</label>
+                            <input type="text" id="editSchemeName" name="editSchemeName" required
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                                   value="${scheme.name}">
+                        </div>
+                        
+                        <!-- Scheme Prefix -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Scheme Prefix</label>
+                            <input type="text" id="editSchemePrefix" name="editSchemePrefix" required
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                                   value="${scheme.prefix}"
+                                   placeholder="e.g., GD7, CH10, EM5" maxlength="10">
+                        </div>
+                        
+                        ${canEditAll ? `
+                        <!-- Start Date -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Start Date</label>
+                            <input type="date" id="editSchemeStartDate" name="editSchemeStartDate" required
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                                   value="${scheme.start_date}">
+                        </div>
+                        
+                        <!-- Duration -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Duration (months)</label>
+                            <input type="number" id="editSchemeDuration" name="editSchemeDuration" required min="1" max="120" inputmode="numeric" pattern="[0-9]*"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-500 transition-colors"
+                                   value="${scheme.duration}" placeholder="30">
+                        </div>
+                        
+                        <!-- Amounts -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Monthly Amounts</label>
+                            <div class="border border-slate-300 rounded-xl p-2 min-h-[32px] bg-white">
+                                <div id="editAmountTags" class="flex flex-wrap gap-2 mb-1">
+                                    <!-- Tags will be added here dynamically -->
+                                </div>
+                                <input type="text" id="editAmountInput" inputmode="numeric" pattern="[0-9]*"
+                                       class="w-full px-3 py-1 border-0 focus:outline-none focus:ring-0 text-slate-700">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Press Enter to add amount</p>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="flex gap-3">
+                            <button type="button" onclick="hideEditModal()" class="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-xl transition-colors">
+                                Update Scheme
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Initialize edit form
+            initializeEditForm(scheme);
+        }
+
+        // Initialize edit form
+        function initializeEditForm(scheme) {
+            // Populate amount tags
+            const amountTags = JSON.parse(scheme.amounts);
+            const editAmountTagsContainer = document.getElementById('editAmountTags');
+            if (editAmountTagsContainer) {
+                editAmountTagsContainer.innerHTML = '';
+                amountTags.forEach(amount => {
+                    addEditAmountTag(amount);
+                });
+            }
+            
+            // Setup amount input
+            const editAmountInput = document.getElementById('editAmountInput');
+            if (editAmountInput) {
+                editAmountInput.addEventListener('keydown', handleEditAmountInput);
+            }
+            
+            // Setup form submission
+            const editForm = document.getElementById('editSchemeForm');
+            if (editForm) {
+                editForm.addEventListener('submit', handleEditSchemeFormSubmit);
+            }
+        }
+
+        // Hide edit modal
+        function hideEditModal() {
+            const modal = document.getElementById('editSchemeModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+            // Clear the editing scheme ID
+            localStorage.removeItem('editingSchemeId');
+        }
+
+        // Add amount tag for edit form
+        function addEditAmountTag(value) {
+            const trimmedValue = value.trim();
+            if (trimmedValue && /^\d+$/.test(trimmedValue)) {
+                const container = document.getElementById('editAmountTags');
+                const existingTags = Array.from(container.children).map(tag => tag.querySelector('span').textContent);
+                
+                if (!existingTags.includes(trimmedValue)) {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm';
+                    tagElement.innerHTML = `
+                        <span>${trimmedValue}</span>
+                        <button type="button" onclick="removeEditAmountTag('${trimmedValue}')" class="text-slate-500 hover:text-red-500 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    `;
+                    container.appendChild(tagElement);
+                }
+            }
+        }
+
+        // Remove amount tag for edit form
+        function removeEditAmountTag(value) {
+            const container = document.getElementById('editAmountTags');
+            const tags = Array.from(container.children);
+            const tagToRemove = tags.find(tag => tag.querySelector('span').textContent === value);
+            if (tagToRemove) {
+                container.removeChild(tagToRemove);
+            }
+        }
+
+        // Handle amount input for edit form
+        function handleEditAmountInput(event) {
+            if (!/[0-9]/.test(event.key) && !['Enter', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(event.key)) {
+                event.preventDefault();
+                return;
+            }
+            
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const value = event.target.value;
+                if (value.trim()) {
+                    addEditAmountTag(value);
+                    event.target.value = '';
+                }
+            }
+        }
+
+        // Handle edit scheme form submission
+        async function handleEditSchemeFormSubmit(event) {
+            event.preventDefault();
+            
+            try {
+                const formData = new FormData(event.target);
+                const schemeId = localStorage.getItem('editingSchemeId');
+                
+                if (!schemeId) {
+                    showToast('Error: No scheme selected for editing', 'error');
+                    return;
+                }
+                
+                // Get current scheme to check if it has customers
+                const schemeResult = await window.electronAPI.schemes.getById(schemeId);
+                if (!schemeResult.success) {
+                    showToast('Error getting scheme details', 'error');
+                    return;
+                }
+                
+                const currentScheme = schemeResult.scheme;
+                const customersResult = await window.electronAPI.customer.getAll(schemeId);
+                const schemeCustomers = customersResult.customers || [];
+                const hasCustomers = schemeCustomers.length > 0;
+                
+                // Prepare update data
+                const updateData = {
+                    name: formData.get('editSchemeName'),
+                    prefix: formData.get('editSchemePrefix')
+                };
+                
+                // Only include other fields if no customers exist
+                if (!hasCustomers) {
+                    updateData.start_date = formData.get('editSchemeStartDate');
+                    updateData.duration = parseInt(formData.get('editSchemeDuration'));
+                    
+                    // Get amounts from tags
+                    const amountTags = Array.from(document.getElementById('editAmountTags').children)
+                        .map(tag => tag.querySelector('span').textContent);
+                    updateData.amounts = amountTags;
+                }
+                
+                // Validate prefix uniqueness (if changed)
+                if (updateData.prefix !== currentScheme.prefix) {
+                    const schemesResult = await window.electronAPI.schemes.getAll();
+                    const existingScheme = schemesResult.find(s => s.prefix === updateData.prefix);
+                    if (existingScheme) {
+                        showToast(`Prefix "${updateData.prefix}" already exists. Please choose a different prefix.`, 'error');
+                        return;
+                    }
+                }
+                
+                // Update the scheme
+                const result = await window.electronAPI.schemes.update(schemeId, updateData);
+                if (result.success) {
+                    showToast('Scheme updated successfully!', 'success');
+                    hideEditModal();
+                    await loadSchemes();
+                } else {
+                    showToast('Failed to update scheme: ' + result.error, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error updating scheme:', error);
+                showToast('Error updating scheme', 'error');
+            }
+        }
+
+        // Tag-based amount system
+        let amountTags = [];
+
+        // Add amount tag
+        function addAmountTag(value) {
+            const trimmedValue = value.trim();
+            // Only allow numeric values
+            if (trimmedValue && /^\d+$/.test(trimmedValue) && !amountTags.includes(trimmedValue)) {
+                amountTags.push(trimmedValue);
+                renderAmountTags();
+                document.getElementById('amountInput').value = '';
+            }
+        }
+
+        // Remove amount tag
+        function removeAmountTag(value) {
+            amountTags = amountTags.filter(tag => tag !== value);
+            renderAmountTags();
+        }
+
+        // Render amount tags
+        function renderAmountTags() {
+            const container = document.getElementById('amountTags');
+            container.innerHTML = '';
+            
+            amountTags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm';
+                tagElement.innerHTML = `
+                    <span>${tag}</span>
+                    <button type="button" onclick="removeAmountTag('${tag}')" class="text-slate-500 hover:text-red-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(tagElement);
+            });
+        }
+
+        // Handle amount input
+        function handleAmountInput(event) {
+            // Allow only numeric input
+            if (!/[0-9]/.test(event.key) && !['Enter', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(event.key)) {
+                event.preventDefault();
+                return;
+            }
+            
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const value = event.target.value;
+                if (value.trim()) {
+                    addAmountTag(value);
+                }
+            }
+        }
+
+        // Show modal
+        function showModal() {
+            const modal = document.getElementById('addSchemeModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        // Hide modal
+        function hideModal() {
+            const modal = document.getElementById('addSchemeModal');
+            const content = document.getElementById('modalContent');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('schemeForm').reset();
+                // Reset calendar to January 1st, 2025 in UTC
+                selectedSchemeStartDate = new Date(Date.UTC(2025, 0, 1));
+                updateSelectedSchemeStartDateText();
+                // Format date as YYYY-MM-DD without timezone conversion
+                const year = selectedSchemeStartDate.getUTCFullYear();
+                const month = String(selectedSchemeStartDate.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(selectedSchemeStartDate.getUTCDate()).padStart(2, '0');
+                document.getElementById('schemeStartDate').value = `${year}-${month}-${day}`;
+                // Reset amount tags
+                amountTags = [];
+                renderAmountTags();
+                document.getElementById('amountInput').value = '';
+            }, 300);
+        }
+
+        // Calendar functions
+        function updateSelectedSchemeStartDateText() {
+            const dateText = selectedSchemeStartDate.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            document.getElementById('selectedSchemeStartDateText').textContent = dateText;
+            document.getElementById('selectedSchemeStartDateTextModal').textContent = dateText;
+        }
+
+        function renderSchemeStartCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('currentSchemeStartMonthYear').textContent = `${monthNames[schemeStartCurrentMonth]} ${schemeStartCurrentYear}`;
+            
+            const firstDay = new Date(schemeStartCurrentYear, schemeStartCurrentMonth, 1);
+            const lastDay = new Date(schemeStartCurrentYear, schemeStartCurrentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            const calendarDays = document.getElementById('schemeStartCalendarDays');
+            calendarDays.innerHTML = '';
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'h-10';
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('button');
+                dayElement.className = 'h-10 w-10 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100';
+                dayElement.textContent = day;
+                
+                const currentDayDate = new Date(Date.UTC(schemeStartCurrentYear, schemeStartCurrentMonth, day));
+                const today = new Date();
+                const isToday = currentDayDate.toDateString() === today.toDateString();
+                const isSelected = currentDayDate.toDateString() === selectedSchemeStartDate.toDateString();
+                
+                // Apply styling
+                if (isToday) {
+                    dayElement.className += ' bg-brand-100 text-brand-600';
+                }
+                if (isSelected) {
+                    dayElement.className += ' bg-brand-600 text-white hover:bg-brand-700';
+                }
+                
+                dayElement.addEventListener('click', () => {
+                    // Create date in UTC to avoid timezone issues
+                    selectedSchemeStartDate = new Date(Date.UTC(schemeStartCurrentYear, schemeStartCurrentMonth, day));
+                    updateSelectedSchemeStartDateText();
+                    renderSchemeStartCalendar();
+                });
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        function setupSchemeStartCalendar() {
+            // Set default date to January 1st, 2025 in UTC
+            selectedSchemeStartDate = new Date(Date.UTC(2025, 0, 1));
+            updateSelectedSchemeStartDateText();
+            renderSchemeStartCalendar();
+            
+            // Event listeners for calendar
+            document.getElementById('schemeStartDatePickerBtn').addEventListener('click', () => {
+                // Set calendar to show January 2025 when opening
+                schemeStartCurrentMonth = 0; // January
+                schemeStartCurrentYear = 2025;
+                renderSchemeStartCalendar();
+                document.getElementById('schemeStartCalendarModal').classList.remove('hidden');
+            });
+
+            document.getElementById('closeSchemeStartCalendar').addEventListener('click', () => {
+                document.getElementById('schemeStartCalendarModal').classList.add('hidden');
+            });
+
+            document.getElementById('prevSchemeStartMonth').addEventListener('click', () => {
+                schemeStartCurrentMonth--;
+                if (schemeStartCurrentMonth < 0) {
+                    schemeStartCurrentMonth = 11;
+                    schemeStartCurrentYear--;
+                }
+                renderSchemeStartCalendar();
+            });
+
+            document.getElementById('nextSchemeStartMonth').addEventListener('click', () => {
+                schemeStartCurrentMonth++;
+                if (schemeStartCurrentMonth > 11) {
+                    schemeStartCurrentMonth = 0;
+                    schemeStartCurrentYear++;
+                }
+                renderSchemeStartCalendar();
+            });
+
+
+            document.getElementById('selectSchemeStartDateBtn').addEventListener('click', () => {
+                // Update the hidden input field with the selected date
+                // Format date as YYYY-MM-DD without timezone conversion
+                const year = selectedSchemeStartDate.getUTCFullYear();
+                const month = String(selectedSchemeStartDate.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(selectedSchemeStartDate.getUTCDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+                document.getElementById('schemeStartDate').value = dateStr;
+                
+                document.getElementById('schemeStartCalendarModal').classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('schemeStartCalendarModal').addEventListener('click', (e) => {
+                if (e.target.id === 'schemeStartCalendarModal') {
+                    document.getElementById('schemeStartCalendarModal').classList.add('hidden');
+                }
+            });
+        }
+
+        // Event listeners
+        document.getElementById('addSchemeBtn').addEventListener('click', showModal);
+        document.getElementById('createFirstSchemeBtn').addEventListener('click', showModal);
+        document.getElementById('closeModal').addEventListener('click', hideModal);
+        document.getElementById('cancelBtn').addEventListener('click', hideModal);
+        document.getElementById('amountInput').addEventListener('keydown', handleAmountInput);
+
+        // Close modal when clicking outside
+        document.getElementById('addSchemeModal').addEventListener('click', function(e) {
+            if (e.target.id === 'addSchemeModal') {
+                hideModal();
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('schemeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const prefix = formData.get('schemePrefix').toUpperCase();
+            
+            if (amountTags.length === 0) {
+                showToast('Please add at least one amount', 'error');
+                return;
+            }
+
+            // Check if prefix already exists
+            const existingScheme = schemes.find(scheme => scheme.prefix === prefix);
+            if (existingScheme) {
+                showToast(`Prefix "${prefix}" already exists. Please choose a different prefix.`, 'error');
+                return;
+            }
+
+            // Ensure start date is set
+            let startDate = formData.get('schemeStartDate');
+            if (!startDate) {
+                // Format date as YYYY-MM-DD without timezone conversion
+                const year = selectedSchemeStartDate.getUTCFullYear();
+                const month = String(selectedSchemeStartDate.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(selectedSchemeStartDate.getUTCDate()).padStart(2, '0');
+                startDate = `${year}-${month}-${day}`;
+            }
+            
+            const schemeData = {
+                name: formData.get('schemeName'),
+                prefix: prefix,
+                start_date: startDate,
+                duration: parseInt(formData.get('schemeDuration')),
+                amounts: amountTags
+            };
+
+            try {
+                const result = await window.electronAPI.schemes.add(schemeData);
+                if (result.success) {
+                    showToast('Scheme created successfully!', 'success');
+                    // Small delay to ensure toast is shown before closing modal
+                    setTimeout(() => {
+                        hideModal();
+                        loadSchemes();
+                    }, 500);
+                } else {
+                    showToast('Failed to create scheme: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating scheme:', error);
+                showToast('Error creating scheme', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

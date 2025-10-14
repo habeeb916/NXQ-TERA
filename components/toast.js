@@ -60,8 +60,12 @@ window.showToast = function(message, type = 'info') {
     <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-brand-500 to-brand-600 rounded-b-xl toast-progress-bar"></div>
   `;
   
-  // Add border color class
-  toast.classList.add(borderColor);
+  // Add border color classes
+  borderColor.split(' ').forEach(cls => {
+    if (cls.trim()) {
+      toast.classList.add(cls.trim());
+    }
+  });
   
   document.body.appendChild(toast);
   

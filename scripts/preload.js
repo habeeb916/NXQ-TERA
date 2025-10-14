@@ -18,11 +18,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Customer management
   customer: {
     add: (customerData) => ipcRenderer.invoke('customer-add', customerData),
-    getAll: () => ipcRenderer.invoke('customer-get-all'),
+    getAll: (schemeId = null) => ipcRenderer.invoke('customer-get-all', schemeId),
     getById: (id) => ipcRenderer.invoke('customer-get-by-id', id),
     checkCode: (code) => ipcRenderer.invoke('customer-check-code', code),
     getPayments: (customerId) => ipcRenderer.invoke('customer-get-payments', customerId),
-    getNextCode: () => ipcRenderer.invoke('get-next-customer-code'),
+    getNextCode: (schemeId) => ipcRenderer.invoke('get-next-customer-code', schemeId),
     validateCode: (code) => ipcRenderer.invoke('validate-customer-code', code)
   },
 
@@ -30,18 +30,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   payment: {
     add: (paymentData) => ipcRenderer.invoke('payment-add', paymentData),
     getByCustomerId: (customerId) => ipcRenderer.invoke('payment-get-by-customer', customerId),
-    getAll: () => ipcRenderer.invoke('payment-get-all')
+    getAll: (schemeId = null) => ipcRenderer.invoke('payment-get-all', schemeId)
   },
 
         // Transactions
-        getTransactionsByDate: (paymentDate) => ipcRenderer.invoke('transactions-get-by-date', paymentDate),
+        getTransactionsByDate: (paymentDate, schemeId = null) => ipcRenderer.invoke('transactions-get-by-date', paymentDate, schemeId),
         getTransactionsByDateRange: (startDate, endDate) => ipcRenderer.invoke('transactions-get-by-date-range', startDate, endDate),
 
   // Winners
   winners: {
     add: (winnerData) => ipcRenderer.invoke('winners-add', winnerData),
-    getAll: () => ipcRenderer.invoke('winners-get-all'),
-    getAvailableMonths: () => ipcRenderer.invoke('winners-get-available-months')
+    getAll: (schemeId = null) => ipcRenderer.invoke('winners-get-all', schemeId),
+    getAvailableMonths: (schemeId = null) => ipcRenderer.invoke('winners-get-available-months', schemeId)
   },
 
   // Deliveries
@@ -50,9 +50,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getByWinner: (winnerId) => ipcRenderer.invoke('delivery-get-by-winner', winnerId)
   },
 
+  // Schemes
+  schemes: {
+    add: (schemeData) => ipcRenderer.invoke('schemes-add', schemeData),
+    getAll: () => ipcRenderer.invoke('schemes-get-all'),
+    getById: (schemeId) => ipcRenderer.invoke('schemes-get-by-id', schemeId),
+    update: (schemeId, schemeData) => ipcRenderer.invoke('schemes-update', schemeId, schemeData),
+    delete: (schemeId) => ipcRenderer.invoke('schemes-delete', schemeId)
+  },
+
   // Dashboard
   dashboard: {
-    getStats: () => ipcRenderer.invoke('dashboard-stats')
+    getStats: (schemeId = null) => ipcRenderer.invoke('dashboard-stats', schemeId)
   },
 
   // Navigation

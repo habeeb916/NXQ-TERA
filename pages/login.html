@@ -180,18 +180,18 @@
             // Try multiple navigation methods for better compatibility
             if (window.electronAPI && window.electronAPI.navigation) {
               console.log('Login page: Using Electron navigation API');
-              window.electronAPI.navigation.navigateTo('pages/dashboard.html')
+              window.electronAPI.navigation.navigateTo('pages/scheme-selection.html')
                 .then(() => {
                   console.log('Login page: Electron navigation successful');
                 })
                 .catch((error) => {
                   console.error('Login page: Electron navigation failed:', error);
                   console.log('Login page: Falling back to window.location');
-                  window.location.href = 'dashboard.html';
+                  window.location.href = 'scheme-selection.html';
                 });
             } else {
               console.log('Login page: Using window.location fallback');
-              window.location.href = 'dashboard.html';
+              window.location.href = 'scheme-selection.html';
             }
           }, 1000);
           

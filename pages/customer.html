@@ -389,7 +389,7 @@
 
     <section id="timelineSection" class="bg-white rounded-2xl border border-slate-100 p-6 shadow-card">
       <div class="flex items-center justify-between mb-4">
-        <h2 id="timelineTitle" class="font-medium text-slate-800">30-Month Payment Timeline</h2>
+        <h2 id="timelineTitle" class="font-medium text-slate-800">Payment Timeline</h2>
         <div id="timelineLegend" class="flex items-center gap-3 text-sm">
           <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded-full bg-green-500 inline-block"></span> Paid</span>
           <span class="inline-flex items-center gap-1"><span class="h-3 w-3 rounded-full bg-red-500 inline-block"></span> Unpaid</span>
@@ -597,8 +597,9 @@
         
         const customerId = getCustomerIdFromUrl();
         
-        // Load default start date from environment
+        // Load default start date from environment first, then override with scheme start date
         await loadDefaultStartDate();
+        await loadSchemeStartDate();
         
         // Load customer data from API
         const customerResult = await loadCustomerFromAPI(customerId);
@@ -624,10 +625,30 @@
       try {
         if (window.electronAPI && window.electronAPI.getDefaultStartDate) {
           defaultStartDate = await window.electronAPI.getDefaultStartDate();
-          console.log('Customer page: Default start date loaded:', defaultStartDate);
+          console.log('Customer page: Environment default start date loaded:', defaultStartDate);
         }
       } catch (error) {
         console.error('Customer page: Error getting default start date:', error);
+      }
+    }
+
+    // Load scheme start date (preferred over environment default)
+    async function loadSchemeStartDate() {
+      try {
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        if (selectedSchemeId && window.electronAPI && window.electronAPI.schemes) {
+          const result = await window.electronAPI.schemes.getById(selectedSchemeId);
+          if (result.success && result.scheme && result.scheme.start_date) {
+            defaultStartDate = result.scheme.start_date;
+            console.log('Customer page: Scheme start date loaded:', defaultStartDate);
+          } else {
+            console.log('Customer page: No scheme start date found, using environment default');
+          }
+        } else {
+          console.log('Customer page: No scheme selected, using environment default');
+        }
+      } catch (error) {
+        console.error('Customer page: Error getting scheme start date:', error);
       }
     }
 
@@ -804,18 +825,25 @@
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const startMonth = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
         
-        programDetailsEl.textContent = `Program started ${startMonth} • 30 months`;
+        // Get scheme duration for program details
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        if (selectedSchemeId) {
+          window.electronAPI.schemes.getById(selectedSchemeId).then(schemeResult => {
+            if (schemeResult && schemeResult.success && schemeResult.scheme && schemeResult.scheme.duration) {
+              programDetailsEl.textContent = `Program started ${startMonth} • ${schemeResult.scheme.duration} months`;
+            } else {
+              programDetailsEl.textContent = `Program started ${startMonth}`;
+            }
+          }).catch(error => {
+            console.error('Error getting scheme duration for program details:', error);
+            programDetailsEl.textContent = `Program started ${startMonth}`;
+          });
+        } else {
+          programDetailsEl.textContent = `Program started ${startMonth}`;
+        }
       }
       
-      // Update timeline title
-      const timelineTitleEl = document.getElementById('timelineTitle');
-      if (timelineTitleEl) {
-        const startDate = new Date(customerData.start_date);
-        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const startMonth = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
-        
-        timelineTitleEl.textContent = `30-Month Payment Timeline (${startMonth} →)`;
-      }
+      // Timeline title will be updated by generatePaymentTimeline() function
     }
 
     // Update amount collected card with count-up animation
@@ -881,8 +909,24 @@
       requestAnimationFrame(updateCount);
     }
 
+    // Update timeline title with duration and date range
+    function updateTimelineTitle(startDate, duration) {
+      const timelineTitleEl = document.getElementById('timelineTitle');
+      if (timelineTitleEl) {
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        
+        // Calculate start and end months
+        const startMonth = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + duration - 1, 1);
+        const endMonth = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+        
+        // Format: "6-Month Payment Timeline (Oct 2025 → Mar 2026)"
+        timelineTitleEl.textContent = `${duration}-Month Payment Timeline (${startMonth} → ${endMonth})`;
+      }
+    }
+
     // Generate payment timeline based on real data
-    function generatePaymentTimeline() {
+    async function generatePaymentTimeline() {
       const container = document.getElementById('calendarGrid');
       if (!container || !customerData) {
         console.error('Container or customer data not available');
@@ -892,12 +936,47 @@
       container.innerHTML = ''; // Clear loading message
       
       const startDate = new Date(customerData.start_date);
-      const count = 30; // Always show 30 months
+      
+      // Get scheme duration dynamically
+      const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+      let count = 30; // Default fallback
+      
+      console.log('Timeline generation - selectedSchemeId:', selectedSchemeId);
+      
+      if (selectedSchemeId) {
+        try {
+          console.log('Fetching scheme data for ID:', selectedSchemeId);
+          const schemeResult = await window.electronAPI.schemes.getById(selectedSchemeId);
+          console.log('Scheme data received:', schemeResult);
+          
+          if (schemeResult && schemeResult.success && schemeResult.scheme && schemeResult.scheme.duration) {
+            count = schemeResult.scheme.duration;
+            console.log('✅ Using scheme duration:', count, 'months');
+          } else {
+            console.log('❌ Scheme duration not found, using default 30 months');
+          }
+        } catch (error) {
+          console.error('❌ Error getting scheme duration:', error);
+        }
+      } else {
+        console.log('❌ No scheme selected, using default 30 months');
+      }
+      
+      console.log('Final count for timeline generation:', count);
+      generateTimelineWithCount(count);
+    }
+    
+    function generateTimelineWithCount(count) {
+      const container = document.getElementById('calendarGrid');
+      const startDate = new Date(customerData.start_date);
       const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const now = new Date();
       
       console.log('Generating timeline for customer:', customerData.name, 'Starting from:', startDate);
       console.log('Payments data:', paymentsData);
+      
+      // Update timeline title with duration and date range
+      updateTimelineTitle(startDate, count);
       
       // Create a map of payments by month-year for quick lookup
       const paymentsByMonth = {};
@@ -1111,7 +1190,8 @@
       
       try {
         console.log('Calling winners.getAll()');
-        const result = await window.electronAPI.winners.getAll();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const result = await window.electronAPI.winners.getAll(selectedSchemeId);
         console.log('Winners result:', result);
         if (result.success) {
           const customerWinner = result.winners.find(w => w.customer_id === currentCustomerId);
@@ -1295,7 +1375,18 @@
         console.log('loadAvailableMonths: Modal classes:', modal ? modal.className : 'Modal not found');
         
         console.log('loadAvailableMonths: Calling API...');
-        const result = await window.electronAPI.winners.getAvailableMonths();
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        console.log('loadAvailableMonths: Selected scheme ID:', selectedSchemeId);
+        console.log('loadAvailableMonths: All localStorage keys:', Object.keys(localStorage));
+        console.log('loadAvailableMonths: localStorage selectedSchemeId type:', typeof selectedSchemeId);
+        console.log('loadAvailableMonths: localStorage selectedSchemeId value:', JSON.stringify(selectedSchemeId));
+        
+        if (!selectedSchemeId) {
+          console.error('loadAvailableMonths: No scheme ID found in localStorage!');
+          return;
+        }
+        
+        const result = await window.electronAPI.winners.getAvailableMonths(selectedSchemeId);
         console.log('loadAvailableMonths: API result:', result);
         
         if (result.success) {
@@ -1314,8 +1405,21 @@
             defaultOption.textContent = 'Select a month...';
             select.appendChild(defaultOption);
             
+            // Get existing winners to filter out months where customer is already a winner
+            const existingWinners = await window.electronAPI.winners.getAll(selectedSchemeId);
+            const customerWinnerMonths = existingWinners.success ? 
+              existingWinners.winners.filter(w => w.customer_id === currentCustomerId).map(w => w.month_year) : [];
+            
+            console.log('loadAvailableMonths: Customer winner months:', customerWinnerMonths);
+            
             console.log('loadAvailableMonths: Adding months to dropdown...');
             result.availableMonths.forEach((month, index) => {
+              // Skip months where customer is already a winner
+              if (customerWinnerMonths.includes(month)) {
+                console.log(`loadAvailableMonths: Skipping month ${month} - customer already winner`);
+                return;
+              }
+              
               console.log(`loadAvailableMonths: Adding month ${index + 1}:`, month);
               const option = document.createElement('option');
               option.value = month;
@@ -1401,15 +1505,30 @@
           }
 
           try {
+            // Check if customer is already a winner for this month
+            const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+            const existingWinners = await window.electronAPI.winners.getAll(selectedSchemeId);
+            
+            if (existingWinners.success) {
+              const existingWinner = existingWinners.winners.find(w => 
+                w.customer_id === currentCustomerId && w.month_year === monthYear
+              );
+              
+              if (existingWinner) {
+                showToast('This customer is already a winner for the selected month!', 'error');
+                return;
+              }
+            }
+
             // Find the position (count existing winners + 1)
-            const result = await window.electronAPI.winners.getAll();
             let position = 1;
-            if (result.success) {
-              position = result.winners.length + 1;
+            if (existingWinners.success) {
+              position = existingWinners.winners.length + 1;
             }
 
             const addResult = await window.electronAPI.winners.add({
               customerId: currentCustomerId,
+              schemeId: selectedSchemeId,
               monthYear: monthYear,
               goldRate: goldRate,
               winningAmount: winningAmount,
@@ -1421,11 +1540,20 @@
               await loadCustomerWinner();
               showToast('Customer marked as winner successfully!', 'success');
             } else {
-              showToast('Error marking customer as winner: ' + addResult.error, 'error');
+              // Handle specific constraint error
+              if (addResult.error && addResult.error.includes('UNIQUE constraint failed')) {
+                showToast('This customer is already a winner for the selected month!', 'error');
+              } else {
+                showToast('Error marking customer as winner: ' + addResult.error, 'error');
+              }
             }
           } catch (error) {
             console.error('Error marking winner:', error);
-            showToast('Error marking customer as winner', 'error');
+            if (error.message && error.message.includes('UNIQUE constraint failed')) {
+              showToast('This customer is already a winner for the selected month!', 'error');
+            } else {
+              showToast('Error marking customer as winner', 'error');
+            }
           }
         });
       }

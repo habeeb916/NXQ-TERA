@@ -308,6 +308,20 @@
             setupEventListeners();
         });
 
+        // Reload winners when page becomes visible (e.g., when navigating back from customer page)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('Winners page became visible, reloading winners...');
+                loadWinners();
+            }
+        });
+
+        // Also reload when the page gains focus
+        window.addEventListener('focus', function() {
+            console.log('Winners page gained focus, reloading winners...');
+            loadWinners();
+        });
+
         // Setup event listeners
         function setupEventListeners() {
             // Deliveries modal
@@ -359,9 +373,17 @@
         // Load winners function
         async function loadWinners() {
             try {
-                const result = await window.electronAPI.winners.getAll();
+                console.log('Loading winners...');
+                const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+                console.log('Selected scheme ID:', selectedSchemeId);
+                
+                const result = await window.electronAPI.winners.getAll(selectedSchemeId);
+                console.log('Winners API result:', result);
+                
                 if (result.success) {
                     winnersData = result.winners || [];
+                    console.log('Winners data loaded:', winnersData.length, 'winners');
+                    console.log('Winners details:', winnersData);
                     displayWinners(winnersData);
                     updateSummaryCards(winnersData);
                 } else {

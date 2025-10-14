@@ -3,6 +3,13 @@
         <div class="flex justify-between items-center py-4">
             <div class="flex items-center space-x-4">
                 <h1 class="text-2xl font-bold text-gray-800">HSM-Tera Management System</h1>
+                <div id="schemeIndicator" class="hidden">
+                    <div class="flex items-center space-x-2 px-3 py-1 bg-brand-100 rounded-lg border border-brand-200">
+                        <div class="w-2 h-2 bg-brand-500 rounded-full"></div>
+                        <span id="currentSchemeName" class="text-sm font-medium text-brand-700">Loading...</span>
+                        <button onclick="switchScheme()" class="text-brand-600 hover:text-brand-800 text-xs underline">Switch</button>
+                    </div>
+                </div>
             </div>
             <div class="flex items-center space-x-4">
                 <a href="dashboard.html" class="text-gray-600 hover:text-gray-800">Dashboard</a>

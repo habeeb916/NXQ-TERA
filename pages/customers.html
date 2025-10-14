@@ -506,6 +506,31 @@
           customerCountEl.textContent = `${filtered} of ${total} customer${total !== 1 ? 's' : ''} found`;
         }
       }
+      
+      // Update print button state
+      updatePrintButtonState();
+    }
+    
+    // Update print button state based on customer count
+    function updatePrintButtonState() {
+      const printBtn = document.getElementById('printBtn');
+      if (!printBtn) return;
+      
+      const hasCustomers = filteredCustomers.length > 0;
+      
+      if (hasCustomers) {
+        // Enable print button
+        printBtn.disabled = false;
+        printBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        printBtn.classList.add('hover:bg-slate-700', 'hover:scale-105');
+        printBtn.title = 'Print monthly report';
+      } else {
+        // Disable print button
+        printBtn.disabled = true;
+        printBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        printBtn.classList.remove('hover:bg-slate-700', 'hover:scale-105');
+        printBtn.title = 'No customers to print';
+      }
     }
 
     // Update pagination
@@ -656,6 +681,12 @@
     async function handlePrint() {
       try {
         console.log('Print: Starting print process...');
+        
+        // Check if there are customers to print
+        if (filteredCustomers.length === 0) {
+          showToast('No customers to print. Please add customers first.', 'error');
+          return;
+        }
         
         // Get current scheme info
         const selectedSchemeId = localStorage.getItem('selectedSchemeId');

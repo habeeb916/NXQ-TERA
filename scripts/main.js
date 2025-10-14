@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
 const AuthService = require('../scripts/auth');
 require('dotenv').config();
 
@@ -897,5 +898,40 @@ ipcMain.handle('clear-database', async (event) => {
       success: false,
       error: error.message
     };
+  }
+});
+
+// Dialog IPC handlers
+ipcMain.handle('dialog-show-save', async (event, options) => {
+  try {
+    console.log('IPC: Showing save dialog with options:', options);
+    const result = await dialog.showSaveDialog(mainWindow, options);
+    console.log('IPC: Save dialog result:', result);
+    return result;
+  } catch (error) {
+    console.error('IPC: Save dialog error:', error.message);
+    throw error;
+  }
+});
+
+// File system IPC handlers
+ipcMain.handle('fs-write-file', async (event, filePath, data, encoding = 'utf8') => {
+  try {
+    console.log('IPC: Writing file to:', filePath);
+    console.log('IPC: Encoding:', encoding);
+    
+    if (encoding === 'base64') {
+      // Convert base64 to buffer for binary files
+      const buffer = Buffer.from(data, 'base64');
+      await fs.writeFile(filePath, buffer);
+    } else {
+      await fs.writeFile(filePath, data, encoding);
+    }
+    
+    console.log('IPC: File written successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('IPC: Write file error:', error.message);
+    throw error;
   }
 });

@@ -70,5 +70,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Database management
-  clearDatabase: () => ipcRenderer.invoke('clear-database')
+  clearDatabase: () => ipcRenderer.invoke('clear-database'),
+
+  // File system operations
+  dialog: {
+    showSaveDialog: (options) => ipcRenderer.invoke('dialog-show-save', options)
+  },
+
+  // File operations
+  fs: {
+    writeFile: (filePath, data, encoding) => ipcRenderer.invoke('fs-write-file', filePath, data, encoding)
+  }
 });

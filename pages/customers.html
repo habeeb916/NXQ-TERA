@@ -47,12 +47,21 @@
         <p class="text-slate-600 mt-1">Manage your customer database</p>
       </div>
       
-      <a href="add-customer.html" class="inline-flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-xl shadow-card hover:bg-brand-700 transition-all duration-300 hover:scale-105">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-        <span>Add Customer</span>
-      </a>
+      <div class="flex items-center gap-3">
+        <button id="printBtn" class="inline-flex items-center gap-2 bg-slate-600 text-white px-6 py-3 rounded-xl shadow-card hover:bg-slate-700 transition-all duration-300 hover:scale-105">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+          </svg>
+          <span>Print Report</span>
+        </button>
+        
+        <a href="add-customer.html" class="inline-flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-xl shadow-card hover:bg-brand-700 transition-all duration-300 hover:scale-105">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          <span>Add Customer</span>
+        </a>
+      </div>
     </div>
 
     <!-- Search and Filter Section -->
@@ -284,6 +293,12 @@
         filterSelect.addEventListener('change', handleFilter);
       }
       
+      // Print button
+      const printBtn = document.getElementById('printBtn');
+      if (printBtn) {
+        printBtn.addEventListener('click', handlePrint);
+      }
+      
       // Pagination buttons
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
@@ -326,9 +341,9 @@
           case 'name-desc':
             return (b.name || '').localeCompare(a.name || '');
           case 'code-asc':
-            return (a.customer_code || '').localeCompare(b.customer_code || '');
+            return sortCustomerCodes(a.customer_code || '', b.customer_code || '');
           case 'code-desc':
-            return (b.customer_code || '').localeCompare(a.customer_code || '');
+            return sortCustomerCodes(b.customer_code || '', a.customer_code || '');
           case 'amount-asc':
             return (a.monthly_amount || 0) - (b.monthly_amount || 0);
           case 'amount-desc':
@@ -341,6 +356,38 @@
       currentPage = 1;
       renderCustomers();
       updatePagination();
+    }
+
+    // Sort customer codes numerically (e.g., GD7-1, GD7-2, GD7-11)
+    function sortCustomerCodes(codeA, codeB) {
+      // Extract prefix and number from codes like "GD7-1", "GD7-11"
+      const extractCodeParts = (code) => {
+        const match = code.match(/^([A-Za-z]+)(\d+)-(\d+)$/);
+        if (match) {
+          return {
+            prefix: match[1],
+            schemeNum: parseInt(match[2]),
+            customerNum: parseInt(match[3])
+          };
+        }
+        return { prefix: code, schemeNum: 0, customerNum: 0 };
+      };
+      
+      const partsA = extractCodeParts(codeA);
+      const partsB = extractCodeParts(codeB);
+      
+      // First compare prefixes
+      if (partsA.prefix !== partsB.prefix) {
+        return partsA.prefix.localeCompare(partsB.prefix);
+      }
+      
+      // Then compare scheme numbers
+      if (partsA.schemeNum !== partsB.schemeNum) {
+        return partsA.schemeNum - partsB.schemeNum;
+      }
+      
+      // Finally compare customer numbers
+      return partsA.customerNum - partsB.customerNum;
     }
 
     // Handle filter
@@ -603,6 +650,421 @@
           }
         });
       }
+    }
+
+    // Handle print functionality
+    async function handlePrint() {
+      try {
+        console.log('Print: Starting print process...');
+        
+        // Get current scheme info
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        console.log('Print: Selected scheme ID:', selectedSchemeId);
+        
+        if (!selectedSchemeId) {
+          showToast('No scheme selected. Please select a scheme first.', 'error');
+          return;
+        }
+
+        // Get scheme details
+        const schemeResult = await window.electronAPI.schemes.getById(selectedSchemeId);
+        console.log('Print: Scheme result:', schemeResult);
+        
+        if (!schemeResult.success) {
+          showToast('Failed to get scheme details.', 'error');
+          return;
+        }
+
+        const scheme = schemeResult.scheme;
+        const schemePrefix = scheme.prefix || 'SCHEME';
+        console.log('Print: Scheme prefix:', schemePrefix);
+        
+        // Get last winner info
+        const winnersResult = await window.electronAPI.winners.getAll(selectedSchemeId);
+        console.log('Print: Winners result:', winnersResult);
+        
+        let lastWinner = null;
+        if (winnersResult.success && winnersResult.winners && winnersResult.winners.length > 0) {
+          // Sort winners by month_year to get the latest
+          const sortedWinners = winnersResult.winners.sort((a, b) => b.month_year.localeCompare(a.month_year));
+          lastWinner = sortedWinners[0];
+          console.log('Print: Last winner:', lastWinner);
+        }
+
+        // Use filtered customers (respects current search/filter/sort)
+        const customersToPrint = [...filteredCustomers];
+        console.log('Print: Customers to print:', customersToPrint);
+        
+        // Sort customers numerically by code for print
+        customersToPrint.sort((a, b) => sortCustomerCodes(a.customer_code || '', b.customer_code || ''));
+
+        console.log('Print: Generating HTML file for', customersToPrint.length, 'customers');
+        
+        // Generate HTML file (compatible with Word)
+          await generateWordReport(schemePrefix, customersToPrint, lastWinner);
+        
+        showToast('HTML report generated successfully!', 'success');
+        
+      } catch (error) {
+        console.error('Print: Error generating report:', error);
+        showToast('Failed to generate report: ' + error.message, 'error');
+      }
+    }
+
+    // Generate HTML report (compatible with Word)
+    async function generateWordReport(schemePrefix, customers, lastWinner) {
+      try {
+        console.log('HTML: Starting HTML report generation...');
+        console.log('HTML: Scheme prefix:', schemePrefix);
+        console.log('HTML: Customers count:', customers.length);
+        console.log('HTML: Last winner:', lastWinner);
+        
+        // Get all winners for this scheme to check winner status
+        const selectedSchemeId = localStorage.getItem('selectedSchemeId');
+        const winnersResult = await window.electronAPI.winners.getAll(selectedSchemeId);
+        const allWinners = winnersResult.success ? winnersResult.winners : [];
+        console.log('HTML: All winners for scheme:', allWinners);
+        
+        // Helper function to get winner status for a customer
+        function getWinnerStatus(customerId) {
+          const winner = allWinners.find(w => w.customer_id === customerId);
+          if (winner) {
+            const position = winner.position;
+            if (position === 1) return '1st winner';
+            if (position === 2) return '2nd winner';
+            if (position === 3) return '3rd winner';
+            return `${position}th winner`;
+          }
+          return '';
+        }
+        
+        const today = new Date();
+        const currentDate = today.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        console.log('HTML: Current date:', currentDate);
+
+        // Create Excel data with proper structure matching the photo
+        const excelData = [];
+        
+        // Header - centered and bold
+        excelData.push([`HASNA ${schemePrefix} MONTHLY REPORT`]);
+        excelData.push([`Date: ${currentDate}`]);
+        
+        // Winner info
+        if (lastWinner) {
+          const winnerCode = lastWinner.customer_code || 'Unknown';
+          const winnerName = lastWinner.customer_name || 'Unknown';
+          excelData.push([`LAST WINNER: ${winnerCode} - ${winnerName}`]);
+        } else {
+          excelData.push(['LAST WINNER:']);
+        }
+        
+        excelData.push([]); // Empty row
+        
+        // Dynamic table generation - show only actual customers
+        const customersPerTable = 34;
+        const totalCustomers = customers.length;
+        const totalPages = Math.ceil(totalCustomers / (customersPerTable * 2));
+        
+        // For now, let's handle the first page
+        const table1 = customers.slice(0, customersPerTable);
+        const table2 = customers.slice(customersPerTable, customersPerTable * 2);
+        
+        console.log('HTML: Table 1 customers:', table1.length);
+        console.log('HTML: Table 2 customers:', table2.length);
+        
+        // Create combined table structure (side by side)
+        const maxRows = Math.max(table1.length, table2.length);
+        
+        // Headers for both tables - exactly like your photo
+        const headerRow = ['NO', 'NAME', 'CAT', 'PE', 'CASH', '', 'NO', 'NAME', 'CAT', 'PE', 'CASH'];
+        excelData.push(headerRow);
+        
+        // Data rows for both tables
+        for (let i = 0; i < maxRows; i++) {
+          const row = [];
+          
+          // Left table (1-24)
+          if (i < table1.length) {
+            const customer1 = table1[i];
+            const customerNumber1 = extractCustomerNumber(customer1.customer_code);
+            row.push(
+              customerNumber1,
+              customer1.name || 'Unknown',
+              customer1.monthly_amount || 0,
+              '', // PE - empty for manual filling
+              ''  // Cash - empty for manual filling
+            );
+          } else {
+            row.push('', '', '', '', ''); // Empty cells for left table
+          }
+          
+          // Separator column (empty)
+          row.push('');
+          
+          // Right table (26-49, skipping 25)
+          if (i < table2.length) {
+            const customer2 = table2[i];
+            const customerNumber2 = extractCustomerNumber(customer2.customer_code);
+            // Add 25 to the customer number for right table (26-49)
+            const rightTableNumber = customerNumber2 + 25;
+            row.push(
+              rightTableNumber,
+              customer2.name || 'Unknown',
+              customer2.monthly_amount || 0,
+              '', // PE - empty for manual filling
+              ''  // Cash - empty for manual filling
+            );
+          } else {
+            row.push('', '', '', '', ''); // Empty cells for right table
+          }
+          
+          excelData.push(row);
+        }
+        
+        console.log('HTML: Generated data rows:', excelData.length);
+        
+        // Only show heading if we have customers
+        const hasCustomers = customers.length > 0;
+        
+        // Create HTML content for Word document
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Monthly Report</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: ${hasCustomers ? '6mm' : '2mm'};
+              font-size: 12px;
+              font-weight: 600;
+            }
+            
+            .header { 
+              text-align: center; 
+              font-size: 22px; 
+              font-weight: bold; 
+              margin-bottom: 3mm;
+            }
+            
+            .header-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 3mm;
+              font-size: 14px;
+              font-weight: bold;
+            }
+            
+            .tables-container {
+              display: flex;
+              gap: 5mm;
+            }
+            
+            table { 
+              border-collapse: collapse; 
+              font-size: 11px;
+              font-weight: 600;
+              width: 50%;
+            }
+            
+            th, td { 
+              border: 1px solid #000; 
+              padding: 1.8mm; 
+              text-align: center; 
+              height: 7mm;
+              font-weight: 600;
+            }
+            
+            th { 
+              background-color: #f0f0f0; 
+              font-weight: bold;
+              font-size: 11px;
+            }
+            
+            .name-col {
+              text-align: left;
+              width: 40%;
+              font-weight: 700;
+            }
+            
+            .no-col {
+              width: 8%;
+              font-weight: bold;
+            }
+            
+            .cat-col, .pe-col, .cash-col {
+              width: 13%;
+            }
+            
+            @media print {
+              body { padding: ${hasCustomers ? '5mm' : '1mm'}; font-weight: 600; }
+              .header { font-size: 20px; margin-bottom: 2mm; }
+              .header-info { font-size: 13px; margin-bottom: 2mm; }
+              .tables-container { gap: 3mm; }
+              table { font-size: 10px; font-weight: 600; }
+              th, td { padding: 1.5mm; height: 6mm; font-weight: 600; }
+              th { font-weight: bold; }
+              .name-col { font-weight: 700; }
+              .no-col { font-weight: bold; }
+              @page { margin: 5mm; size: A4; }
+            }
+          </style>
+        </head>
+        <body>
+          ${hasCustomers ? `
+          <div class="header">HASNA ${schemePrefix} MONTHLY REPORT</div>
+          <div class="header-info">
+            <span>LAST WINNER: ${lastWinner ? `${lastWinner.customer_code || 'Unknown'} - ${lastWinner.customer_name || 'Unknown'}` : ''}</span>
+            <span>DATE: ${currentDate}</span>
+          </div>
+          ` : ''}
+          
+          <div class="tables-container">
+            ${table1.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th class="no-col">NO</th>
+                  <th class="name-col">NAME</th>
+                  <th class="cat-col">CAT</th>
+                  <th class="pe-col">PE</th>
+                  <th class="cash-col">CASH</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${table1.map((customer, i) => `
+                  <tr>
+                    <td class="no-col">${extractCustomerNumber(customer.customer_code)}</td>
+                    <td class="name-col">${customer.name || ''}</td>
+                    <td class="cat-col">${customer.monthly_amount || ''}</td>
+                    <td class="pe-col"></td>
+                    <td class="cash-col">${getWinnerStatus(customer.id)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            ` : ''}
+            
+            ${table2.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th class="no-col">NO</th>
+                  <th class="name-col">NAME</th>
+                  <th class="cat-col">CAT</th>
+                  <th class="pe-col">PE</th>
+                  <th class="cash-col">CASH</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${table2.map((customer, i) => `
+                  <tr>
+                    <td class="no-col">${extractCustomerNumber(customer.customer_code) + 34}</td>
+                    <td class="name-col">${customer.name || ''}</td>
+                    <td class="cat-col">${customer.monthly_amount || ''}</td>
+                    <td class="pe-col"></td>
+                    <td class="cash-col">${getWinnerStatus(customer.id)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            ` : ''}
+          </div>
+        </body>
+        </html>
+        `;
+        
+        console.log('HTML: Generated HTML content for Word document');
+        
+        // Create and save file using Electron's native dialog
+        const fileName = `Hasna_${schemePrefix}_Monthly_Report_${currentDate.replace(/\//g, '-')}.html`;
+        
+        console.log('HTML: File name:', fileName);
+        
+        try {
+          // Use Electron's dialog to save file
+          const result = await window.electronAPI.dialog.showSaveDialog({
+            title: 'Save Monthly Report',
+            defaultPath: fileName,
+            filters: [
+              { name: 'HTML Files', extensions: ['html'] },
+              { name: 'All Files', extensions: ['*'] }
+            ]
+          });
+          
+          if (!result.canceled && result.filePath) {
+            // Write HTML file using Electron's fs
+            await window.electronAPI.fs.writeFile(result.filePath, htmlContent, 'utf8');
+            console.log('HTML: File saved successfully to:', result.filePath);
+            showToast('Report saved successfully! You can open it in Word or any word processor.', 'success');
+          } else {
+            console.log('HTML: Save dialog cancelled');
+            showToast('Save cancelled', 'info');
+          }
+        } catch (error) {
+          console.error('HTML: Error saving file:', error);
+          showToast('Error saving file: ' + error.message, 'error');
+        }
+        
+      } catch (error) {
+        console.error('HTML: Error in generateWordReport:', error);
+        throw error;
+      }
+    }
+
+    // Extract customer number from code (e.g., "GD7-1" -> 1)
+    function extractCustomerNumber(customerCode) {
+      if (!customerCode) return '';
+      const match = customerCode.match(/-(\d+)$/);
+      return match ? parseInt(match[1]) : '';
+    }
+
+    // Simple toast notification system
+    function showToast(message, type = 'info') {
+      console.log(`Toast [${type}]:`, message);
+      
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transition-all duration-300 transform translate-x-full`;
+      
+      // Set color based on type
+      switch (type) {
+        case 'success':
+          toast.classList.add('bg-green-500');
+          break;
+        case 'error':
+          toast.classList.add('bg-red-500');
+          break;
+        case 'warning':
+          toast.classList.add('bg-yellow-500');
+          break;
+        default:
+          toast.classList.add('bg-blue-500');
+      }
+      
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      // Animate in
+      setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+      }, 100);
+      
+      // Auto remove after 3 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
     }
 
     // Smooth navigation

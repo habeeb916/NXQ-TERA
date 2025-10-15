@@ -638,7 +638,11 @@
 
             document.getElementById('selectPaymentDateBtn').addEventListener('click', () => {
                 // Update the hidden input field with the selected date
-                const dateStr = selectedPaymentDate.toISOString().split('T')[0];
+                // Use local date formatting to avoid timezone issues
+                const year = selectedPaymentDate.getFullYear();
+                const month = String(selectedPaymentDate.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedPaymentDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
                 document.getElementById('paymentDate').value = dateStr;
                 
                 document.getElementById('paymentCalendarModal').classList.add('hidden');
@@ -694,8 +698,12 @@
                 setupPaymentCalendar();
                 
                 // Set default payment date to today
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('paymentDate').value = today;
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                document.getElementById('paymentDate').value = todayStr;
       }
     });
 

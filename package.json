@@ -84,7 +84,6 @@
           ]
         }
       ],
-      "icon": "assets/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -107,7 +106,6 @@
           ]
         }
       ],
-      "icon": "assets/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -132,7 +130,6 @@
           ]
         }
       ],
-      "icon": "assets/icon.png",
       "category": "Office"
     }
   }
